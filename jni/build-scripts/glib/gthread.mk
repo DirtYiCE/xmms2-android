@@ -1,0 +1,15 @@
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+	$(GLIB_TOP)/gthread/gthread-impl.c
+
+LOCAL_MODULE := gthread-2.0
+LOCAL_CFLAGS := \
+    -DG_LOG_DOMAIN=\"GThread\" \
+    -DG_DISABLE_DEPRECATED
+
+LOCAL_C_INCLUDES := $(GLIB_INCLUDES)
+
+LOCAL_SHARED_LIBRARIES := glib-2.0
+
+include $(BUILD_SHARED_LIBRARY)

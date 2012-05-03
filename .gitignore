@@ -1,0 +1,5 @@
+gen
+.idea/workspace.xml
+*.swp
+obj/
+libs/

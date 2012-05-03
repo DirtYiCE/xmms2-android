@@ -1,0 +1,15 @@
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+    $(GLIB_TOP)/gmodule/gmodule.c
+
+LOCAL_MODULE := gmodule-2.0
+LOCAL_C_INCLUDES := $(GLIB_INCLUDES)
+
+LOCAL_CFLAGS := \
+    -DG_LOG_DOMAIN=\"GModule\" \
+    -DG_DISABLE_DEPRECATED
+
+LOCAL_SHARED_LIBRARIES := glib-2.0
+
+include $(BUILD_SHARED_LIBRARY)
