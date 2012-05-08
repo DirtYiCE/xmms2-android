@@ -6,7 +6,7 @@ XMMS_SOURCE := $(XMMS_TOP)/src
 XMMS_CONFIG := $(LOCAL_PATH)/config/xmms2
 
 LOCAL_SRC_FILES := \
-	service.c \
+    service.c \
     $(XMMS_SOURCE)/xmms/fetchinfo.c \
     $(XMMS_SOURCE)/xmms/medialib_query.c \
     $(XMMS_SOURCE)/xmms/medialib_session.c \
@@ -22,7 +22,7 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/ipc.c \
     $(XMMS_SOURCE)/xmms/medialib_query_result.c \
     $(XMMS_SOURCE)/xmms/medialib.c \
-	$(XMMS_SOURCE)/xmms/metadata.c \
+    $(XMMS_SOURCE)/xmms/metadata.c \
     $(XMMS_SOURCE)/xmms/object.c \
     $(XMMS_SOURCE)/xmms/xform.c \
     $(XMMS_SOURCE)/xmms/compat/statfs_linux.c \
@@ -59,7 +59,7 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/converter_plugin.c \
     $(XMMS_SOURCE)/xmms/compat/signal_unix.c \
     $(XMMS_SOURCE)/xmms/error.c \
-    config/xmms2/gen/sample.c \
+    config/xmms2/sample.c \
     $(XMMS_SOURCE)/xmms/visualization/xform.c \
     $(XMMS_SOURCE)/xmms/visualization/object.c \
     $(XMMS_SOURCE)/xmms/visualization/dummy.c \
@@ -71,13 +71,13 @@ LOCAL_SRC_FILES := \
 LOCAL_CFLAGS := -pthread -D_SEM_SEMUN_UNDEFINED
 
 XMMS_INCLUDES := \
-	$(XMMS_CONFIG) \
-	$(XMMS_CONFIG)/include \
-	$(LOCAL_PATH)/$(XMMS_SOURCE)/includepriv \
-	$(LOCAL_PATH)/$(XMMS_SOURCE)/include \
-	$(LOCAL_PATH)/$(XMMS_SOURCE)/xmms \
-	$(LOCAL_PATH)/$(XMMS_SOURCE) \
-	$(XMMS_CONFIG)/gen
+                 $(XMMS_CONFIG) \
+                 $(XMMS_CONFIG)/include \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE)/includepriv \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE)/include \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE)/xmms \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE) \
+                 $(XMMS_CONFIG)/ipc
 
 LOCAL_C_INCLUDES := $(GLIB_INCLUDES) $(GMODULE_INCLUDES) $(S4_INCLUDE) $(XMMS_INCLUDES)
 
