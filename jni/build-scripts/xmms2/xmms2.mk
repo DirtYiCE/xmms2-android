@@ -6,6 +6,7 @@ XMMS_SOURCE := $(XMMS_TOP)/src
 XMMS_CONFIG := $(LOCAL_PATH)/config/xmms2
 
 LOCAL_SRC_FILES := \
+	service.c \
     $(XMMS_SOURCE)/xmms/fetchinfo.c \
     $(XMMS_SOURCE)/xmms/medialib_query.c \
     $(XMMS_SOURCE)/xmms/medialib_session.c \
@@ -70,11 +71,12 @@ LOCAL_SRC_FILES := \
 LOCAL_CFLAGS := -pthread -D_SEM_SEMUN_UNDEFINED
 
 XMMS_INCLUDES := \
+	$(XMMS_CONFIG) \
+	$(XMMS_CONFIG)/include \
 	$(LOCAL_PATH)/$(XMMS_SOURCE)/includepriv \
 	$(LOCAL_PATH)/$(XMMS_SOURCE)/include \
 	$(LOCAL_PATH)/$(XMMS_SOURCE)/xmms \
 	$(LOCAL_PATH)/$(XMMS_SOURCE) \
-	$(XMMS_CONFIG) \
 	$(XMMS_CONFIG)/gen
 
 LOCAL_C_INCLUDES := $(GLIB_INCLUDES) $(GMODULE_INCLUDES) $(S4_INCLUDE) $(XMMS_INCLUDES)

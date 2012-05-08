@@ -16,6 +16,10 @@
   <component name="ClearCaseSharedConfig">
     <option name="myUseUcmModel" value="true" />
   </component>
+  <component name="CppTools.Loader" reportImplicitCastToBool="false" reportNameReferencedOnce="false" warnedAboutFileOutOfSourceRoot="true" version="3" currentProject="$PROJECT_DIR$/jni/glib/glib/glib-mirroring-tab/Makefile" sdkErrorReported="true" compilerSelect="AUTO" />
+  <component name="EntryPointsManager">
+    <entry_points version="2.0" />
+  </component>
   <component name="IdProvider" IDEtalkID="08D24FC27FCFFDBF628C19555E0C92F4" />
   <component name="JavadocGenerationManager">
     <option name="OUTPUT_DIRECTORY" />
