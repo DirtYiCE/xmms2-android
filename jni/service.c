@@ -26,12 +26,15 @@ static JNINativeMethod methods[] = {
 	{"start", "()V", start_service}
 };
 
+JavaVM *global_jvm;
+
+static const gchar *conffile = NULL;
 
 jint
 JNI_OnLoad (JavaVM *vm, void *reserved)
 {
 	JNIEnv *env = NULL;
-	if ((*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6) != JNI_OK) {
+	if ((*vm)->GetEnv(vm, (void **)&env, JNI_VERSION_1_6) != JNI_OK) {
 		return -1;  /* fail */
 	}
 
@@ -41,12 +44,15 @@ JNI_OnLoad (JavaVM *vm, void *reserved)
 
 	xmms_log_info("Load successful!");
 
+	global_jvm = vm;
+
 	return JNI_VERSION_1_6;
 }
 
 static void JNICALL
 start_service (JNIEnv *env, jclass thiz)
 {
+	gchar configdir[XMMS_PATH_MAX];
 	int loglevel = 1;
 
 	g_thread_init (NULL);
@@ -55,4 +61,9 @@ start_service (JNIEnv *env, jclass thiz)
 
 	xmms_log_init (loglevel);
 	xmms_log_info("starting...");
+
+	conffile = xmms_userconfdir_get (configdir, XMMS_PATH_MAX);
+	xmms_log_debug("conf file: %s", conffile);
+
+	//xmms_ipc_init ();
 }

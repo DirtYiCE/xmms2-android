@@ -4,6 +4,7 @@ import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Environment;
 import android.os.IBinder;
 import org.xmms2.server.api11.NotificationFactoryLevel11;
 import org.xmms2.server.api8.NotificationFactoryLevel8;
@@ -42,6 +43,12 @@ public class Server extends Service
         startForeground(ONGOING_NOTIFICATION, notification);
         start();
         return START_STICKY;
+    }
+
+    public static char[] getConfigDir()
+    {
+        char[] result = Environment.getExternalStorageDirectory().getAbsolutePath().toCharArray();
+        return result;
     }
 
     static {

@@ -41,7 +41,7 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/outputplugin.c \
     $(XMMS_SOURCE)/lib/xmmsutils/stacktrace_dummy.c \
     $(XMMS_SOURCE)/lib/xmmsutils/strlist.c \
-    $(XMMS_SOURCE)/lib/xmmsutils/utils_unix.c \
+    config/xmms2/lib/xmmsutils/utils_android.c \
     $(XMMS_SOURCE)/lib/xmmsutils/utils.c \
     $(XMMS_SOURCE)/xmms/playlist_updater.c \
     $(XMMS_SOURCE)/xmms/output.c \

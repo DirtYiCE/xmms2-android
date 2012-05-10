@@ -18,6 +18,8 @@
  * Miscellaneous internal utility functions.
  */
 
+#include <jni.h>
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <pwd.h>
@@ -26,33 +28,48 @@
 
 #include "xmms_configuration.h"
 #include "xmmsc/xmmsc_util.h"
+#include "xmmspriv/xmms_plugin.h"
+#include "xmmspriv/xmms_config.h"
+#include "xmmspriv/xmms_playlist.h"
+#include "xmmspriv/xmms_playlist_updater.h"
+#include "xmmspriv/xmms_collsync.h"
+#include "xmmspriv/xmms_collection.h"
+#include "xmmspriv/xmms_signal.h"
+#include "xmmspriv/xmms_symlink.h"
+#include "xmmspriv/xmms_checkroot.h"
+#include "xmmspriv/xmms_thread_name.h"
+#include "xmmspriv/xmms_medialib.h"
+#include "xmmspriv/xmms_mediainfo.h"
+#include "xmmspriv/xmms_output.h"
+#include "xmmspriv/xmms_ipc.h"
+#include "xmmspriv/xmms_log.h"
+#include "xmmspriv/xmms_xform.h"
+#include "xmmspriv/xmms_bindata.h"
+#include "xmmspriv/xmms_utils.h"
 
-/**
- * internal function used for the function below.
- * @internal
-**/
-static const char *
-xdg_dir_get (const char *env, const char *default_dir, char *buf, int len)
+extern JavaVM *global_jvm; 
+const char *
+android_dir_get (const char *default_dir, char *buf, int len)
 {
-	struct passwd *pw;
-	char *home;
-
-	if (!buf || len <= 0)
+	JNIEnv *env = NULL;
+	if ((*global_jvm)->GetEnv (global_jvm, (void **)&env, JNI_VERSION_1_6) != JNI_OK) {
 		return NULL;
-
-	home = getenv (env);
-
-	if (home && *home) {
-		snprintf (buf, len, "%s/xmms2", home);
-
-		return buf;
 	}
 
-	pw = getpwuid (getuid ());
-	if (!pw)
-		return NULL;
+	jclass clazz = (*env)->FindClass (env, "org.xmms2.server.Server");
+	jmethodID method = (*env)->GetStaticMethodID (env, clazz, "getConfigDir", "()[C");
 
-	snprintf (buf, len, "%s/%s", pw->pw_dir, default_dir);
+	if (method) {
+		jboolean is_copy = 1;
+
+		jcharArray dir = (*env)->CallStaticObjectMethod (env, clazz, method);
+		jchar *elems = (*env)->GetCharArrayElements (env, dir, &is_copy);
+		if (elems) {
+			snprintf(buf, len, "%s", elems);
+		}
+
+		(*env)->ReleaseCharArrayElements (env, dir, elems, JNI_ABORT);
+	}
 
 	return buf;
 }
@@ -66,7 +83,7 @@ xdg_dir_get (const char *env, const char *default_dir, char *buf, int len)
 const char *
 xmms_usercachedir_get (char *buf, int len)
 {
-    return xdg_dir_get ("XDG_CACHE_HOME", USERCACHEDIR, buf, len);
+    return android_dir_get (USERCACHEDIR, buf, len);
 }
 
 /**
@@ -79,7 +96,7 @@ xmms_usercachedir_get (char *buf, int len)
 const char *
 xmms_userconfdir_get (char *buf, int len)
 {
-    return xdg_dir_get ("XDG_CONFIG_HOME", USERCONFDIR, buf, len);
+    return android_dir_get (USERCONFDIR, buf, len);
 }
 
 /**
