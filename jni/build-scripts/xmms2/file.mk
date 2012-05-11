@@ -1,0 +1,16 @@
+include $(CLEAR_VARS)
+
+FILE_SOURCE := $(XMMS_PLUGINS)/file
+
+LOCAL_SRC_FILES := \
+	$(FILE_SOURCE)/file.c \
+	$(FILE_SOURCE)/browse/fstatat.c
+
+LOCAL_C_INCLUDES := $(GLIB_INCLUDES) $(XMMS_INCLUDES)
+LOCAL_CFLAGS := -fPIC
+
+LOCAL_SHARED_LIBRARIES := glib-2.0 xmms2
+LOCAL_MODULE := file
+LOCAL_LDLIBS := -llog
+
+include $(BUILD_SHARED_LIBRARY)

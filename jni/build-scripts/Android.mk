@@ -19,6 +19,20 @@ GLIB_INCLUDES := \
 GMODULE_INCLUDES := \
 	$(LOCAL_PATH)/$(GLIB_TOP)/gmodule
 
+XMMS_TOP := xmms2
+XMMS_SOURCE := $(XMMS_TOP)/src
+XMMS_CONFIG := $(LOCAL_PATH)/config/xmms2
+XMMS_PLUGINS := $(XMMS_SOURCE)/plugins
+
+XMMS_INCLUDES := \
+                 $(XMMS_CONFIG) \
+                 $(XMMS_CONFIG)/include \
+				 $(LOCAL_PATH)/$(XMMS_SOURCE)/lib/xmmsipc \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE)/includepriv \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE)/include \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE)/xmms \
+                 $(LOCAL_PATH)/$(XMMS_SOURCE) \
+                 $(XMMS_CONFIG)/ipc
 
 S4_TOP := s4
 S4 := $(LOCAL_PATH)/$(S4_TOP)
@@ -31,3 +45,5 @@ include $(BUILD_SCRIPTS_DIR)/glib/gmodule.mk
 include $(BUILD_SCRIPTS_DIR)/glib/gthread.mk
 include $(BUILD_SCRIPTS_DIR)/s4/s4.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/null.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk

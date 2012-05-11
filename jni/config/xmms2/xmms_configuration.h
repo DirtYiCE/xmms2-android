@@ -15,7 +15,7 @@
 #define HAVE_MODF 1
 /* #undef HAVE_CUNIT_CUNIT_H */
 #define HAVE_SEMTIMEDOP 1
-#define PKGLIBDIR "/usr/local/lib/xmms2"
+#define PKGLIBDIR "/data/data/org.xmms2.server/files/plugins"
 #define SYSCONFDIR "/etc/xmms2"
 #define SCRIPTDIR "/usr/local/share/xmms2/scripts/startup.d"
 #define USERCACHEDIR "xmms2/cache"

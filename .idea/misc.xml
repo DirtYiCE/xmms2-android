@@ -46,7 +46,7 @@
     <default-html-doctype>http://www.w3.org/1999/xhtml</default-html-doctype>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_6" assert-keyword="true" jdk-15="true" project-jdk-name="Android 4.0.3 Platform" project-jdk-type="Android SDK">
-    <output url="file://$PROJECT_DIR$/out" />
+    <output url="file://$USER_HOME$/idea_compiler/xmms2-android" />
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
   <component name="com.sixrr.metrics.MetricsReloaded">
