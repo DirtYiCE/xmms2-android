@@ -91,14 +91,7 @@ xmms_userconfdir_get (char *buf, int len)
 const char *
 xmms_fallback_ipcpath_get (char *buf, int len)
 {
-	struct passwd *pw;
-
-	pw = getpwuid (getuid ());
-	if (!pw || !pw->pw_name) {
-		return NULL;
-	}
-
-	snprintf (buf, len, "unix:///tmp/xmms-ipc-%s", pw->pw_name);
+	snprintf (buf, len, "unix:///xmms2-android");
 
 	return buf;
 }

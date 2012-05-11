@@ -49,6 +49,30 @@ JNI_OnLoad (JavaVM *vm, void *reserved)
 	return JNI_VERSION_1_6;
 }
 
+/**
+ * @internal Load the xmms2d configuration file. Creates the config directory
+ * if needed.
+ */
+static void
+load_config (void)
+{
+	gchar configdir[XMMS_PATH_MAX];
+
+	if (!conffile) {
+		conffile = XMMS_BUILD_PATH ("xmms2.conf");
+	}
+
+	g_assert (strlen (conffile) <= XMMS_MAX_CONFIGFILE_LEN);
+
+	if (!xmms_userconfdir_get (configdir, sizeof (configdir))) {
+		xmms_log_error ("Could not get path to config dir");
+	} else if (!g_file_test (configdir, G_FILE_TEST_IS_DIR)) {
+		g_mkdir_with_parents (configdir, 0755);
+	}
+
+	xmms_config_init (conffile);
+}
+
 static void JNICALL
 start_service (JNIEnv *env, jclass thiz)
 {
@@ -62,8 +86,7 @@ start_service (JNIEnv *env, jclass thiz)
 	xmms_log_init (loglevel);
 	xmms_log_info("starting...");
 
-	conffile = XMMS_BUILD_PATH ("xmms2.conf");
-	xmms_log_debug("conf file: %s", conffile);
+	xmms_ipc_init ();
+	load_config ();
 
-	//xmms_ipc_init ();
 }

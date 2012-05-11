@@ -35,7 +35,7 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/lib/xmmsipc/transport_unix.c \
     $(XMMS_SOURCE)/lib/xmmsipc/msg.c \
     $(XMMS_SOURCE)/lib/xmmsipc/socket_tcp.c \
-    $(XMMS_SOURCE)/lib/xmmsipc/socket_unix.c \
+    config/xmms2/lib/xmmsipc/socket_unix.c \
     $(XMMS_SOURCE)/xmms/config.c \
     config/xmms2/compat/thread_name_prctl.c \
     $(XMMS_SOURCE)/xmms/outputplugin.c \
@@ -73,6 +73,7 @@ LOCAL_CFLAGS := -pthread -D_SEM_SEMUN_UNDEFINED
 XMMS_INCLUDES := \
                  $(XMMS_CONFIG) \
                  $(XMMS_CONFIG)/include \
+				 $(LOCAL_PATH)/$(XMMS_SOURCE)/lib/xmmsipc \
                  $(LOCAL_PATH)/$(XMMS_SOURCE)/includepriv \
                  $(LOCAL_PATH)/$(XMMS_SOURCE)/include \
                  $(LOCAL_PATH)/$(XMMS_SOURCE)/xmms \
