@@ -42,13 +42,12 @@ public class Server extends Service
         Notification notification = notificationFactory.create();
         startForeground(ONGOING_NOTIFICATION, notification);
         start();
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
-    public static char[] getConfigDir()
+    public static String getConfigDir()
     {
-        char[] result = Environment.getExternalStorageDirectory().getAbsolutePath().toCharArray();
-        return result;
+        return Environment.getExternalStorageDirectory().getAbsolutePath();
     }
 
     static {

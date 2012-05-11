@@ -62,7 +62,7 @@ start_service (JNIEnv *env, jclass thiz)
 	xmms_log_init (loglevel);
 	xmms_log_info("starting...");
 
-	conffile = xmms_userconfdir_get (configdir, XMMS_PATH_MAX);
+	conffile = XMMS_BUILD_PATH ("xmms2.conf");
 	xmms_log_debug("conf file: %s", conffile);
 
 	//xmms_ipc_init ();
