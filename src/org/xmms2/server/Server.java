@@ -3,8 +3,9 @@ package org.xmms2.server;
 import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
-import android.os.*;
-import android.os.Process;
+import android.os.Build;
+import android.os.Environment;
+import android.os.IBinder;
 import android.util.Log;
 import org.xmms2.server.api11.NotificationFactoryLevel11;
 import org.xmms2.server.api8.NotificationFactoryLevel8;
@@ -40,16 +41,28 @@ public class Server extends Service
             notificationFactory = new NotificationFactoryLevel8(getApplicationContext());
         }
 
-        File dataDirOut = new File(getFilesDir(), "/plugins/");
-        Log.d("XMMS2", dataDirOut.getAbsolutePath());
-        if (!dataDirOut.exists() && !dataDirOut.mkdirs()) {
+        File pluginsDirOut = new File(getFilesDir(), "/plugins/");
+        Log.d("XMMS2", pluginsDirOut.getAbsolutePath());
+        if (!pluginsDirOut.exists() && !pluginsDirOut.mkdirs()) {
             Log.e("XMMS2", ":E");
+            throw new RuntimeException();
+        }
+
+        File libsDirOut = new File(getFilesDir(), "/libs/");
+        if (!libsDirOut.exists() && !libsDirOut.mkdirs()) {
+            Log.e("XMMS2", ":C");
             throw new RuntimeException();
         }
 
         File files = new File(getConfigDir() + "/xmms2/plugins");
         for (File file : files.listFiles()) {
-            copyFile(file, new File(dataDirOut, file.getName()));
+            if (file.getName().endsWith("lib.so")) {
+                copyFile(file, new File(libsDirOut, file.getName()));
+                System.load(new File(libsDirOut, file.getName()).getAbsolutePath());
+            }
+            else {
+                copyFile(file, new File(pluginsDirOut, file.getName()));
+            }
         }
 
 
@@ -57,6 +70,7 @@ public class Server extends Service
 
     private static void copyFile(File input, File output)
     {
+        Log.d("XMMS2", "Copying " + input.getAbsolutePath() + " to " + output.getAbsolutePath());
         try {
             InputStream in = new FileInputStream(input);
             OutputStream out = new FileOutputStream(output);
@@ -89,12 +103,13 @@ public class Server extends Service
         });
 
         serverThread.start();
-        return START_NOT_STICKY;
+        return START_STICKY;
     }
 
     @Override
     public void onDestroy()
     {
+        stopForeground(true);
         quit();
         try {
             serverThread.join();

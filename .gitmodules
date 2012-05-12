@@ -10,3 +10,6 @@
 [submodule "jni/iconv"]
 	path = jni/iconv
 	url = git://git.sv.gnu.org/libiconv.git
+[submodule "jni/flac"]
+	path = jni/flac
+	url = git://git.xiph.org/flac.git
