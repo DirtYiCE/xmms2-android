@@ -10,6 +10,7 @@ import android.view.View;
  */
 public class ServiceTest extends Activity
 {
+
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
@@ -25,4 +26,5 @@ public class ServiceTest extends Activity
     {
         stopService(new Intent(this, Server.class));
     }
+
 }

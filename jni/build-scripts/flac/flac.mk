@@ -1,6 +1,5 @@
 include $(CLEAR_VARS)
 
-FLAC := $(LOCAL_PATH)/$(FLAC_TOP)
 FLAC_CONFIG := $(LOCAL_PATH)/config/flac
 
 LOCAL_SRC_FILES := \

@@ -14,6 +14,7 @@
  *  Lesser General Public License for more details.
  */
 
+#include <android/log.h>
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -83,7 +84,8 @@ xmms_ipc_usocket_client_init (const xmms_url_t *url)
 	}
 
 	saddr.sun_family = AF_UNIX;
-	snprintf (saddr.sun_path, sizeof(saddr.sun_path), "/%s", url->path);
+	snprintf (saddr.sun_path, sizeof (saddr.sun_path), "#%s", url->path);
+	saddr.sun_path[0] = 0;
 
 	if (connect (fd, (struct sockaddr *) &saddr, sizeof (saddr)) == -1) {
 		close (fd);
@@ -174,8 +176,9 @@ xmms_ipc_usocket_server_init (const xmms_url_t *url)
 	}
 
 	saddr.sun_family = AF_UNIX;
-	saddr.sun_path[0] = '\0';
-	snprintf (saddr.sun_path + 1, sizeof (saddr.sun_path) - 1, "/%s", url->path);
+	snprintf (saddr.sun_path, sizeof (saddr.sun_path), "#%s", url->path);
+	saddr.sun_path[0] = 0;
+	__android_log_print(ANDROID_LOG_DEBUG, "XMMS2", "sun_path: %s", saddr.sun_path + 1);
 
 	if (access (saddr.sun_path, F_OK) == 0) {
 		if (connect (fd, (struct sockaddr *) &saddr, sizeof (saddr)) != -1) {

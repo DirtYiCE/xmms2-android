@@ -91,7 +91,7 @@ xmms_userconfdir_get (char *buf, int len)
 const char *
 xmms_fallback_ipcpath_get (char *buf, int len)
 {
-	snprintf (buf, len, "unix:///xmms2-android");
+	snprintf (buf, len, "tcp://127.0.0.1:9667");
 
 	return buf;
 }
