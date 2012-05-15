@@ -1,0 +1,13 @@
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+	android_output.c
+
+LOCAL_C_INCLUDES := $(GLIB_INCLUDES) $(XMMS_INCLUDES)
+LOCAL_CFLAGS := -fPIC
+
+LOCAL_SHARED_LIBRARIES := glib-2.0 xmms2
+LOCAL_MODULE := android_output 
+LOCAL_LDLIBS := -llog
+
+include $(BUILD_SHARED_LIBRARY)
