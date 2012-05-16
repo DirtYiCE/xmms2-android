@@ -6,7 +6,7 @@
 	url = git://git.xmms.se/xmms2/s4
 [submodule "jni/xmms2"]
 	path = jni/xmms2
-	url = git://git.xmms.se/xmms2/xmms2-devel.git
+	url = git://git.xmms.se/xmms2/xmms2-eclipser.git
 [submodule "jni/iconv"]
 	path = jni/iconv
 	url = git://git.sv.gnu.org/libiconv.git
