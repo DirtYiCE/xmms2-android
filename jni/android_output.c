@@ -36,17 +36,27 @@ XMMS_OUTPUT_PLUGIN ("android",
 
 extern JavaVM *global_jvm;
 
-#define get_jni_env(env, ret) \
-        do { \
-            jint res = (*global_jvm)->AttachCurrentThread (global_jvm, &env, NULL); \
-            g_return_val_if_fail (res == JNI_OK, ret); \
-		} while (0)
+static void
+thread_destroy (gpointer data)
+{
+	(*global_jvm)->DetachCurrentThread (global_jvm);
+}
 
-#define get_jni_env_v(env) \
-        do { \
-            jint res = (*global_jvm)->AttachCurrentThread (global_jvm, &env, NULL); \
-            g_return_if_fail (res == JNI_OK); \
-		} while (0)
+static JNIEnv *
+get_env ()
+{
+	JNIEnv *ret = NULL;
+
+	if ((*global_jvm)->GetEnv (global_jvm, (void **)&ret, JNI_VERSION_1_6) != JNI_OK) {
+		GPrivate *key = g_private_new (thread_destroy);
+		g_private_set (key, (gpointer)1);
+
+		(*global_jvm)->AttachCurrentThread (global_jvm, &ret, NULL);
+	}
+
+	return ret;
+}
+
 static gboolean
 xmms_android_plugin_setup (xmms_output_plugin_t *plugin)
 {
@@ -71,67 +81,53 @@ static xmms_android_data_t *
 setup_output()
 {
 	xmms_android_data_t *data;
-	JNIEnv *env;
+	JNIEnv *env = get_env ();
 	jmethodID ctor;
 
-	XMMS_DBG ("get jni env");
-	get_jni_env (env, NULL);
-
-	XMMS_DBG ("got jni, create data object");
+	g_return_val_if_fail (env, NULL);
 	data = g_new0 (xmms_android_data_t, 1);
 	g_return_val_if_fail (data, NULL);
-	XMMS_DBG ("got data object");
-
 
 	data->output_class = (*env)->FindClass (env, "org/xmms2/server/plugins/Output");
 	if (!(data->output_class)) {
-		XMMS_DBG ("output class not found");
 		goto setup_error;
 	}
 
 	ctor = (*env)->GetMethodID (env, data->output_class, "<init>", "()V");
 	if (!ctor) {
-		XMMS_DBG ("output class ctor not found");
 		goto setup_error;
 	}
 
 	data->write = (*env)->GetMethodID (env, data->output_class, "write", "([BI)Z");
 	if (!(data->write)) {
-		XMMS_DBG ("write method not found");
 		goto setup_error;
 	}
 
 	data->open = (*env)->GetMethodID (env, data->output_class, "open", "()Z");
 	if (!(data->open)) {
-		XMMS_DBG ("open method not found");
 		goto setup_error;
 	}
 
 	data->close = (*env)->GetMethodID (env, data->output_class, "close", "()V");
 	if (!(data->close)) {
-		XMMS_DBG ("close method not found");
 		goto setup_error;
 	}
 
 	data->flush = (*env)->GetMethodID (env, data->output_class, "flush", "()V");
 	if (!(data->flush)) {
-		XMMS_DBG ("flush method not found");
 		goto setup_error;
 	}
 
 	data->set_format = (*env)->GetMethodID (env, data->output_class, "setFormat", "(III)Z");
 	if (!(data->set_format)) {
-		XMMS_DBG ("setFormat method not found");
 		goto setup_error;
 	}
 
 	data->output_object = (*env)->NewObject (env, data->output_class, ctor);
 	if (!(data->output_object)) {
-		XMMS_DBG ("could not construct object");
 		goto setup_error;
 	}
 
-	XMMS_DBG ("data created");
 	return data;
 
 setup_error:
@@ -146,11 +142,8 @@ xmms_android_new (xmms_output_t *output)
 {
 	xmms_android_data_t *data;
 
-	XMMS_DBG ("output %d", output);
 	g_return_val_if_fail (output, FALSE);
-	XMMS_DBG ("setup output");
 	data = setup_output();
-	XMMS_DBG ("done");
 	g_return_val_if_fail (data, FALSE);
 
 	xmms_output_format_add (output, XMMS_SAMPLE_FORMAT_S16, 1, 44100);
@@ -178,13 +171,11 @@ delete_buffer (JNIEnv *env, jbyteArray buffer)
 static void
 destroy_output (xmms_android_data_t *data)
 {
-	JNIEnv *env;
-	get_jni_env_v (env);
+	JNIEnv *env = get_env ();
+	g_return_if_fail (env);
 
 	(*env)->DeleteLocalRef (env, data->output_object);
 	delete_buffer (env, data->buffer);
-
-	(*global_jvm)->DetachCurrentThread (global_jvm);
 }
 
 static void
@@ -205,10 +196,9 @@ static void
 xmms_android_flush (xmms_output_t *output)
 {
 	xmms_android_data_t *data;
-	JNIEnv *env;
+	JNIEnv *env = get_env ();
 
-	get_jni_env_v (env);
-
+	g_return_if_fail (env);
 	g_return_if_fail (output);
 	data = xmms_output_private_data_get (output);
 	g_return_if_fail (data);
@@ -220,11 +210,10 @@ static gboolean
 xmms_android_open (xmms_output_t *output)
 {
 	xmms_android_data_t *data;
-	JNIEnv *env;
+	JNIEnv *env = get_env ();
 	jboolean ret;
 
-	get_jni_env (env, FALSE);
-
+	g_return_val_if_fail (env, FALSE);
 	g_return_val_if_fail (output, FALSE);
 
 	data = xmms_output_private_data_get (output);
@@ -239,10 +228,9 @@ static void
 xmms_android_close (xmms_output_t *output)
 {
 	xmms_android_data_t *data;
-	JNIEnv *env;
+	JNIEnv *env = get_env ();
 
-	get_jni_env_v (env);
-
+	g_return_if_fail (env);
 	g_return_if_fail (output);
 	data = xmms_output_private_data_get (output);
 	g_return_if_fail (data);
@@ -270,11 +258,10 @@ xmms_android_write (xmms_output_t *output, gpointer buffer, gint len,
                     xmms_error_t *err)
 {
 	xmms_android_data_t *data;
-	JNIEnv *env;
+	JNIEnv *env = get_env ();
 	jboolean ret;
 
-	get_jni_env_v (env);
-
+	g_return_if_fail (env);
 	g_return_if_fail (output);
 	data = xmms_output_private_data_get (output);
 	g_return_if_fail (data);
@@ -297,11 +284,10 @@ xmms_android_format_set (xmms_output_t *output, const xmms_stream_type_t *format
 	xmms_android_data_t *data;
 	xmms_sample_format_t sformat;
 	gint channels, srate;
-	JNIEnv *env;
+	JNIEnv *env = get_env ();
 	jboolean ret;
 
-	get_jni_env (env, FALSE);
-
+	g_return_val_if_fail (env, FALSE);
 	g_return_val_if_fail (output, FALSE);
 	data = xmms_output_private_data_get (output);
 	g_return_val_if_fail (data, FALSE);
