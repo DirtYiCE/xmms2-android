@@ -34,6 +34,11 @@ XMMS_INCLUDES := \
                  $(LOCAL_PATH)/$(XMMS_SOURCE) \
                  $(XMMS_CONFIG)/ipc
 
+MAD_TOP := mad
+MAD_SOURCE := $(MAD_TOP)
+
+MAD_INCLUDES := $(LOCAL_PATH)/$(MAD_SOURCE)
+
 S4_TOP := s4
 S4 := $(LOCAL_PATH)/$(S4_TOP)
 S4_INCLUDE := $(S4)/include
@@ -50,8 +55,11 @@ include $(BUILD_SCRIPTS_DIR)/glib/gmodule.mk
 include $(BUILD_SCRIPTS_DIR)/glib/gthread.mk
 include $(BUILD_SCRIPTS_DIR)/s4/s4.mk
 include $(BUILD_SCRIPTS_DIR)/flac/flac.mk
+include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/null.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/mad.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/id3v2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/android.mk
