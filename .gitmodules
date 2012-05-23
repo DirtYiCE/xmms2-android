@@ -16,3 +16,9 @@
 [submodule "jni/mad"]
 	path = jni/mad
 	url = git://gitorious.org/mad/libmad.git
+[submodule "jni/tremor"]
+	path = jni/tremor
+	url = git://git.xiph.org/tremor.git
+[submodule "jni/ogg"]
+	path = jni/ogg
+	url = git://git.xiph.org/mirrors/ogg.git

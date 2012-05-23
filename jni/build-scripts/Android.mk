@@ -36,7 +36,6 @@ XMMS_INCLUDES := \
 
 MAD_TOP := mad
 MAD_SOURCE := $(MAD_TOP)
-
 MAD_INCLUDES := $(LOCAL_PATH)/$(MAD_SOURCE)
 
 S4_TOP := s4
@@ -48,6 +47,13 @@ FLAC := $(LOCAL_PATH)/$(FLAC_TOP)
 FLAC_SOURCE := $(FLAC_TOP)/src/libFLAC
 FLAC_INCLUDE := $(FLAC)/include
 
+OGG_TOP := ogg
+OGG_SOURCE := $(OGG_TOP)/src
+OGG_INCLUDE := $(LOCAL_PATH)/$(OGG_TOP)/include
+
+TREMOR_TOP := tremor
+TREMOR_SOURCE := $(TREMOR_TOP)
+
 include $(BUILD_SCRIPTS_DIR)/iconv/iconv.mk
 include $(BUILD_SCRIPTS_DIR)/glib/pcre.mk
 include $(BUILD_SCRIPTS_DIR)/glib/glib.mk
@@ -56,10 +62,13 @@ include $(BUILD_SCRIPTS_DIR)/glib/gthread.mk
 include $(BUILD_SCRIPTS_DIR)/s4/s4.mk
 include $(BUILD_SCRIPTS_DIR)/flac/flac.mk
 include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
+include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
+include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/null.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/mad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/id3v2.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/android.mk
