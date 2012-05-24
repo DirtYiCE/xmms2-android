@@ -1,7 +1,5 @@
 include $(CLEAR_VARS)
 
-OGG_CONFIG := $(LOCAL_PATH)/config/ogg
-
 LOCAL_SRC_FILES := \
 	$(OGG_SOURCE)/framing.c \
 	$(OGG_SOURCE)/bitwise.c

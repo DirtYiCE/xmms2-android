@@ -49,7 +49,8 @@ FLAC_INCLUDE := $(FLAC)/include
 
 OGG_TOP := ogg
 OGG_SOURCE := $(OGG_TOP)/src
-OGG_INCLUDE := $(LOCAL_PATH)/$(OGG_TOP)/include
+OGG_CONFIG := $(LOCAL_PATH)/config/ogg
+OGG_INCLUDE := $(LOCAL_PATH)/$(OGG_TOP)/include $(OGG_CONFIG)/include
 
 TREMOR_TOP := tremor
 TREMOR_SOURCE := $(TREMOR_TOP)
