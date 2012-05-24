@@ -32,7 +32,7 @@ public class NotificationFactoryLevel11 implements NotificationFactory
         builder.setOngoing(true);
         builder.setWhen(System.currentTimeMillis());
         builder.setSound(null);
-        builder.setSmallIcon(R.drawable.icon);
+        builder.setSmallIcon(R.drawable.notification);
 
         return builder.getNotification();
     }

@@ -23,7 +23,7 @@ public class NotificationFactoryLevel8 implements NotificationFactory
     @Override
     public Notification create()
     {
-        Notification notification = new Notification(R.drawable.icon, "test", System.currentTimeMillis());
+        Notification notification = new Notification(R.drawable.notification, "test", System.currentTimeMillis());
         notification.setLatestEventInfo(context, "Title", "Text",
                                         PendingIntent.getActivity(context, 0,
                                                                   new Intent(context, ServiceTest.class), 0));
