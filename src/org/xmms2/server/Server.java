@@ -48,21 +48,9 @@ public class Server extends Service
             throw new RuntimeException();
         }
 
-        File libsDirOut = new File(getFilesDir(), "/libs/");
-        if (!libsDirOut.exists() && !libsDirOut.mkdirs()) {
-            Log.e("XMMS2", ":C");
-            throw new RuntimeException();
-        }
-
         File files = new File(getConfigDir() + "/xmms2/plugins");
         for (File file : files.listFiles()) {
-            if (file.getName().endsWith("lib.so")) {
-                copyFile(file, new File(libsDirOut, file.getName()));
-                System.load(new File(libsDirOut, file.getName()).getAbsolutePath());
-            }
-            else {
-                copyFile(file, new File(pluginsDirOut, file.getName()));
-            }
+            copyFile(file, new File(pluginsDirOut, file.getName()));
         }
 
 

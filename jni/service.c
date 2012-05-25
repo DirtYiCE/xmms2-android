@@ -291,14 +291,33 @@ change_output (xmms_object_t *object, xmmsv_t *_data, gpointer userdata)
 	}
 }
 
+void
+setup_ipc ()
+{
+	xmms_config_property_t *cv;
+	gchar default_path[XMMS_PATH_MAX + 16];
+	const gchar *ipcpath = NULL;
+
+	xmms_fallback_ipcpath_get (default_path, sizeof (default_path));
+	cv = xmms_config_property_register ("core.ipcsocket",
+	                                    default_path,
+	                                    on_config_ipcsocket_change,
+	                                    NULL);
+
+	ipcpath = xmms_config_property_get_string (cv);
+
+	if (!xmms_ipc_setup_server (ipcpath)) {
+		xmms_ipc_shutdown ();
+		xmms_log_fatal ("IPC failed to init!");
+	}
+}
+
 static void JNICALL
 start_service (JNIEnv *env, jclass thiz)
 {
 	xmms_output_plugin_t *o_plugin;
 	xmms_config_property_t *cv;
-	const gchar *ipcpath = NULL;
 	gchar *uuid = NULL;
-	gchar default_path[XMMS_PATH_MAX + 16];
 	const gchar *outname = NULL;
 	int loglevel = 0;
 
@@ -312,18 +331,7 @@ start_service (JNIEnv *env, jclass thiz)
 	xmms_ipc_init ();
 	load_config ();
 
-	xmms_fallback_ipcpath_get (default_path, sizeof (default_path));
-	cv = xmms_config_property_register ("core.ipcsocket",
-	                                    default_path,
-	                                    on_config_ipcsocket_change,
-	                                    NULL);
-	ipcpath = xmms_config_property_get_string (cv);
-
-	if (!xmms_ipc_setup_server (ipcpath)) {
-		xmms_ipc_shutdown ();
-		xmms_log_fatal ("IPC failed to init!");
-	}
-
+	setup_ipc ();
 	if (!xmms_plugin_init (NULL)) {
 		xmms_log_fatal ("plugin init fail");
 	}
