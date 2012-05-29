@@ -92,6 +92,7 @@ setup_output()
 	if (!(data->output_class)) {
 		goto setup_error;
 	}
+	data->output_class = (*env)->NewGlobalRef (env, data->output_class);
 
 	ctor = (*env)->GetMethodID (env, data->output_class, "<init>", "()V");
 	if (!ctor) {
@@ -127,6 +128,7 @@ setup_output()
 	if (!(data->output_object)) {
 		goto setup_error;
 	}
+	data->output_object = (*env)->NewGlobalRef (env, data->output_object);
 
 	return data;
 
@@ -159,13 +161,15 @@ xmms_android_new (xmms_output_t *output)
 static jbyteArray 
 create_buffer (JNIEnv *env, jsize len)
 {
-	return (*env)->NewByteArray (env, len);
+	jbyteArray ret = (*env)->NewByteArray (env, len);
+	g_return_val_if_fail (ret, NULL);
+	return (*env)->NewGlobalRef (env, ret);
 }
 
 static void
 delete_buffer (JNIEnv *env, jbyteArray buffer)
 {
-	(*env)->DeleteLocalRef (env, buffer);
+	(*env)->DeleteGlobalRef (env, buffer);
 }
 
 static void
@@ -174,7 +178,8 @@ destroy_output (xmms_android_data_t *data)
 	JNIEnv *env = get_env ();
 	g_return_if_fail (env);
 
-	(*env)->DeleteLocalRef (env, data->output_object);
+	(*env)->DeleteGlobalRef (env, data->output_object);
+	(*env)->DeleteGlobalRef (env, data->output_class);
 	delete_buffer (env, data->buffer);
 }
 

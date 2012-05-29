@@ -178,7 +178,7 @@ JNI_OnLoad (JavaVM *vm, void *reserved)
 		return -1;  /* fail */
 	}
 
-	jclass clazz = (*env)->FindClass (env, "org.xmms2.server.Server");
+	jclass clazz = (*env)->FindClass (env, "org/xmms2/server/Server");
 	(*env)->RegisterNatives (env, clazz, methods,
 	                         sizeof(methods)/sizeof(methods[0]));
 
@@ -319,7 +319,9 @@ start_service (JNIEnv *env, jclass thiz)
 	xmms_config_property_t *cv;
 	gchar *uuid = NULL;
 	const gchar *outname = NULL;
+	const gchar *plugin_path = NULL;
 	int loglevel = 0;
+	jmethodID method;
 
 	g_thread_init (NULL);
 
@@ -332,7 +334,17 @@ start_service (JNIEnv *env, jclass thiz)
 	load_config ();
 
 	setup_ipc ();
-	if (!xmms_plugin_init (NULL)) {
+
+	jclass clazz = (*env)->GetObjectClass (env, thiz);
+	method = (*env)->GetMethodID (env, clazz, "getPluginPath", "()Ljava/lang/String;");
+	if (method) {
+		jobject *plugins = (*env)->CallObjectMethod (env, thiz, method);
+		const char *str = (*env)->GetStringUTFChars (env, plugins, 0);
+		plugin_path = g_strdup (str);
+		(*env)->ReleaseStringUTFChars (env, plugins, str);
+	}
+
+	if (!xmms_plugin_init (plugin_path)) {
 		xmms_log_fatal ("plugin init fail");
 	}
 

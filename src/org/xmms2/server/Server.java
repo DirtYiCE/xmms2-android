@@ -21,6 +21,7 @@ public class Server extends Service
     public static final int ONGOING_NOTIFICATION = 1;
     private NotificationFactory notificationFactory;
     private Thread serverThread;
+    private String pluginPath;
 
     private native void start();
     private native void quit();
@@ -42,6 +43,7 @@ public class Server extends Service
         }
 
         File pluginsDirOut = new File(getFilesDir(), "/plugins/");
+        pluginPath = pluginsDirOut.getAbsolutePath();
         Log.d("XMMS2", pluginsDirOut.getAbsolutePath());
         if (!pluginsDirOut.exists() && !pluginsDirOut.mkdirs()) {
             Log.e("XMMS2", ":E");
@@ -109,6 +111,11 @@ public class Server extends Service
     public static String getConfigDir()
     {
         return Environment.getExternalStorageDirectory().getAbsolutePath();
+    }
+
+    public String getPluginPath()
+    {
+        return pluginPath;
     }
 
     static {

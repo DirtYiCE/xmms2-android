@@ -38,7 +38,7 @@ android_dir_get (const char *default_dir, char *buf, int len)
 		return NULL;
 	}
 
-	jclass clazz = (*env)->FindClass (env, "org.xmms2.server.Server");
+	jclass clazz = (*env)->FindClass (env, "org/xmms2/server/Server");
 	jmethodID method = (*env)->GetStaticMethodID (env, clazz, "getConfigDir", "()Ljava/lang/String;");
 
 	if (method) {
