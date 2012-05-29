@@ -51,6 +51,7 @@ static JNINativeMethod methods[] = {
 };
 
 JavaVM *global_jvm;
+jclass server_object;
 
 
 /**
@@ -195,6 +196,11 @@ quit (JNIEnv *env, jclass thiz)
 	kill_server (XMMS_OBJECT (mainobj));
 }
 
+static void
+thread_destroy (gpointer data)
+{
+	(*global_jvm)->DetachCurrentThread (global_jvm);
+}
 
 /**
  * @internal Destroy the main object
@@ -235,6 +241,17 @@ xmms_main_destroy (xmms_object_t *object)
 	xmms_ipc_shutdown ();
 
 	xmms_log_shutdown ();
+
+	JNIEnv *env = NULL;
+
+	if ((*global_jvm)->GetEnv (global_jvm, (void **)&env, JNI_VERSION_1_6) != JNI_OK) {
+		GPrivate *key = g_private_new (thread_destroy);
+		g_private_set (key, (gpointer)1);
+
+		(*global_jvm)->AttachCurrentThread (global_jvm, &env, NULL);
+	}
+
+	(*env)->DeleteGlobalRef (env, server_object);
 }
 
 /**
@@ -322,6 +339,8 @@ start_service (JNIEnv *env, jclass thiz)
 	const gchar *plugin_path = NULL;
 	int loglevel = 0;
 	jmethodID method;
+
+	server_object = (*env)->NewGlobalRef (env, thiz);
 
 	g_thread_init (NULL);
 

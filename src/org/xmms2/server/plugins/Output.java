@@ -1,16 +1,24 @@
 package org.xmms2.server.plugins;
 
+import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.util.Log;
 
 /**
  * @author Eclipser
  */
-public class Output
+public class Output implements AudioManager.OnAudioFocusChangeListener
 {
     private AudioTrack audioTrack;
     private int bufferSize;
+    private AudioManager audioManager;
+
+    public Output(Context context)
+    {
+        this.audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+    }
 
     public int getBufferSize()
     {
@@ -19,16 +27,8 @@ public class Output
 
     public boolean open()
     {
-//        if (audioTrack == null) {
-//            return false;
-//        }
-//
-//        try {
-//            audioTrack.play();
-//        } catch (IllegalStateException e) {
-//            return false;
-//        }
-        return true;
+        int ret = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+        return ret == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     }
 
     public void flush()
@@ -43,6 +43,7 @@ public class Output
         if (audioTrack != null) {
             audioTrack.stop();
         }
+        audioManager.abandonAudioFocus(this);
     }
 
     public boolean write(byte[] buffer, int length)
@@ -78,5 +79,19 @@ public class Output
         }
 
         return true;
+    }
+
+    @Override
+    public void onAudioFocusChange(int focusChange)
+    {
+        if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
+           Log.d("XMMS2 Output", "Focus gained");
+        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+            Log.d("XMMS2 Output", "Focus lost");
+        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+            Log.d("XMMS2 Output", "Focus loss transient");
+        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+            Log.d("XMMS2 Output", "Focus loss transient can duck");
+        }
     }
 }
