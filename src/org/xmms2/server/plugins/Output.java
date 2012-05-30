@@ -40,7 +40,7 @@ public class Output implements AudioManager.OnAudioFocusChangeListener
 
     public void close()
     {
-        if (audioTrack != null) {
+        if (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
             audioTrack.stop();
         }
         audioManager.abandonAudioFocus(this);
@@ -78,7 +78,7 @@ public class Output implements AudioManager.OnAudioFocusChangeListener
             return false;
         }
 
-        return true;
+        return audioTrack.getState() == AudioTrack.STATE_INITIALIZED;
     }
 
     @Override
