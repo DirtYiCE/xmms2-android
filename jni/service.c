@@ -308,7 +308,7 @@ change_output (xmms_object_t *object, xmmsv_t *_data, gpointer userdata)
 	}
 }
 
-void
+static void
 setup_ipc ()
 {
 	xmms_config_property_t *cv;
@@ -327,6 +327,105 @@ setup_ipc ()
 		xmms_ipc_shutdown ();
 		xmms_log_fatal ("IPC failed to init!");
 	}
+}
+
+static JNIEnv *
+get_env ()
+{
+	JNIEnv *ret = NULL;
+
+	if ((*global_jvm)->GetEnv (global_jvm, (void **)&ret, JNI_VERSION_1_6) != JNI_OK) {
+		GPrivate *key = g_private_new (thread_destroy);
+		g_private_set (key, (gpointer)1);
+
+		(*global_jvm)->AttachCurrentThread (global_jvm, &ret, NULL);
+	}
+
+	return ret;
+}
+
+// TODO cleanup, cache, error check
+static void
+current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
+{
+	int32_t id[1];
+	xmms_object_cmd_arg_t arg;
+	xmmsv_coll_t *coll;
+	xmmsv_t *fetch;
+	xmmsv_t *a;
+	const char *artist;
+	const char *title;
+	jstring s;
+	jstring jartist;
+	jstring jtitle;
+	jclass clazz;
+	jmethodID method;
+	JNIEnv *env = get_env ();
+
+	if (!xmmsv_get_int (data, &(id[0]))) {
+		return;
+	}
+	XMMS_DBG ("current id: %d", id[0]);
+	xmms_object_cmd_arg_init (&arg);
+	arg.args = xmmsv_new_list ();
+
+	coll = xmmsv_coll_new (XMMS_COLLECTION_TYPE_IDLIST);
+	xmmsv_coll_set_idlist (coll, id);
+	xmmsv_list_append_coll (arg.args, coll);
+
+	fetch = xmmsv_new_dict ();
+	xmmsv_dict_set_string (fetch, "type", "metadata");
+
+	a = xmmsv_new_list ();
+	xmmsv_list_append_string (a, "artist");
+	xmmsv_list_append_string (a, "title");
+
+	xmmsv_dict_set (fetch, "fields", a);
+
+	a = xmmsv_new_list ();
+	xmmsv_list_append_string (a, "field");
+	xmmsv_list_append_string (a, "value");
+
+	xmmsv_dict_set (fetch, "get", a);
+	xmmsv_list_append (arg.args, fetch);
+
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->colldag_object),
+	                      XMMS_IPC_CMD_QUERY, &arg);
+	xmmsv_unref (arg.args);
+
+	xmmsv_dict_entry_get_string (arg.retval, "artist", &artist);
+	xmmsv_dict_entry_get_string (arg.retval, "title", &title);
+
+	(*env)->PushLocalFrame (env, 2);
+
+	s = (*env)->NewStringUTF (env, artist);
+	if (s == NULL) {
+		XMMS_DBG ("Error making artistic string");
+		return;
+	}
+	jartist = (*env)->NewLocalRef (env, s);
+
+	s = (*env)->NewStringUTF (env, title);
+	if (s == NULL) {
+		XMMS_DBG ("Error making title string");
+		return;
+	}
+	jtitle = (*env)->NewLocalRef (env, s);
+
+	clazz = (*env)->GetObjectClass (env, server_object);
+	if (clazz == NULL) {
+		XMMS_DBG ("error getting class");
+		return;
+	}
+	method = (*env)->GetMethodID (env, clazz, "setCurrentlyPlayingInfo",
+	                              "(Ljava/lang/String;Ljava/lang/String;)V");
+	if (method == NULL) {
+		XMMS_DBG ("error getting method..");
+		return;
+	}
+	(*env)->CallVoidMethod (env, server_object, method, jartist, jtitle);
+
+	(*env)->PopLocalFrame (env, NULL);
 }
 
 static void JNICALL
@@ -411,6 +510,10 @@ start_service (JNIEnv *env, jclass thiz)
 	xmms_signal_init (XMMS_OBJECT (mainobj));
 
 	xmms_main_register_ipc_commands (XMMS_OBJECT (mainobj));
+
+	xmms_object_connect (XMMS_OBJECT (mainobj->output_object),
+	                     XMMS_IPC_SIGNAL_PLAYBACK_CURRENTID,
+	                     &current_id_handler, NULL);
 
 	/* Save the time we started in order to count uptime */
 	mainobj->starttime = time (NULL);

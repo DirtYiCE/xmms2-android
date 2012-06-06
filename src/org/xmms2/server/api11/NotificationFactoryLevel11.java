@@ -21,14 +21,13 @@ public class NotificationFactoryLevel11 implements NotificationFactory
     }
 
     @Override
-    public Notification create()
+    public Notification getNotification(String title, String text, String ticker)
     {
         Notification.Builder builder = new Notification.Builder(context);
         builder.setContentIntent(PendingIntent.getActivity(context, 0, new Intent(context, ServiceTest.class), 0));
-        builder.setContentText("Title");
-        builder.setContentText("Text");
-        builder.setContentInfo("Info");
-        builder.setTicker("Ticker");
+        builder.setContentText(title);
+        builder.setContentInfo(text);
+        builder.setTicker(ticker);
         builder.setOngoing(true);
         builder.setWhen(System.currentTimeMillis());
         builder.setSound(null);
@@ -36,4 +35,5 @@ public class NotificationFactoryLevel11 implements NotificationFactory
 
         return builder.getNotification();
     }
+
 }

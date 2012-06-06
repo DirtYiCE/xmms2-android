@@ -7,5 +7,5 @@ import android.app.Notification;
  */
 public interface NotificationFactory
 {
-    Notification create();
+    Notification getNotification(String title, String text, String ticker);
 }

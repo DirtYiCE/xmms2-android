@@ -81,8 +81,6 @@ public class Server extends Service
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
-        Notification notification = notificationFactory.create();
-        startForeground(ONGOING_NOTIFICATION, notification);
         serverThread = new Thread(new Runnable()
         {
             @Override
@@ -99,7 +97,6 @@ public class Server extends Service
     @Override
     public void onDestroy()
     {
-        stopForeground(true);
         quit();
         try {
             serverThread.join();
@@ -116,6 +113,12 @@ public class Server extends Service
     public String getPluginPath()
     {
         return pluginPath;
+    }
+
+    public void setCurrentlyPlayingInfo(String artist, String title)
+    {
+        Notification note = notificationFactory.getNotification(artist, title, String.format("%s - %s", artist, title));
+        startForeground(ONGOING_NOTIFICATION, note);
     }
 
     static {
