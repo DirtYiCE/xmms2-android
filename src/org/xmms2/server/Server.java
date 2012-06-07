@@ -46,6 +46,7 @@ public class Server extends Service
     public void onCreate()
     {
         super.onCreate();
+        removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, new Intent(ACTION_START_CLIENT), 0);
 
         if (Build.VERSION.SDK_INT >= 11) {
@@ -131,6 +132,7 @@ public class Server extends Service
                 serverThread.join();
             } catch (InterruptedException ignored) {}
         }
+        removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
     }
 
     private static String getConfigDir()

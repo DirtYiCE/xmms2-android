@@ -66,7 +66,6 @@ include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
 include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
-include $(BUILD_SCRIPTS_DIR)/xmms2/null.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/mad.mk

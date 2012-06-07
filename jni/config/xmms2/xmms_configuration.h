@@ -20,7 +20,7 @@
 #define SCRIPTDIR "/usr/local/share/xmms2/scripts/startup.d"
 #define USERCACHEDIR "xmms2/cache"
 #define XMMS_VERSION "0.8 DrO_o (git commit: f5666fdd)"
-#define XMMS_OUTPUT_DEFAULT "null"
+#define XMMS_OUTPUT_DEFAULT "android"
 #define SHAREDDIR "/usr/local/share/xmms2"
 #define BINDIR "/usr/local/bin"
 #define USERCONFDIR "xmms2/config"

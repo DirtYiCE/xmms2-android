@@ -35,7 +35,7 @@ XMMS_OUTPUT_PLUGIN ("android",
                     xmms_android_plugin_setup);
 
 extern JavaVM *global_jvm;
-extern jclass server_object;
+extern jobject server_object;
 
 static void
 thread_destroy (gpointer data)

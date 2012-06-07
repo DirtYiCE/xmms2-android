@@ -51,8 +51,14 @@ static JNINativeMethod methods[] = {
 };
 
 JavaVM *global_jvm;
-jclass server_object;
+jobject server_object;
 
+typedef struct {
+	jclass server_class;
+	jmethodID currently_playing;
+	jmethodID plugin_path_get;
+	jmethodID server_ready;
+} xmms_main_java_cache_t;
 
 /**
  * Main object, when this is unreffed, XMMS2 is quiting.
@@ -69,6 +75,9 @@ struct xmms_main_St {
 	xmms_xform_object_t *xform_object;
 	xmms_mediainfo_reader_t *mediainfo_object;
 	xmms_visualization_t *visualization_object;
+
+	xmms_main_java_cache_t *java_cache;
+	xmmsv_t *coll_query_args;
 	time_t starttime;
 };
 
@@ -190,16 +199,31 @@ JNI_OnLoad (JavaVM *vm, void *reserved)
 	return JNI_VERSION_1_6;
 }
 
-static void JNICALL
-quit (JNIEnv *env, jclass thiz)
-{
-	kill_server (XMMS_OBJECT (mainobj));
-}
-
 static void
 thread_destroy (gpointer data)
 {
 	(*global_jvm)->DetachCurrentThread (global_jvm);
+}
+
+static JNIEnv *
+get_env ()
+{
+	JNIEnv *ret = NULL;
+
+	if ((*global_jvm)->GetEnv (global_jvm, (void **)&ret, JNI_VERSION_1_6) != JNI_OK) {
+		GPrivate *key = g_private_new (thread_destroy);
+		g_private_set (key, (gpointer)1);
+
+		(*global_jvm)->AttachCurrentThread (global_jvm, &ret, NULL);
+	}
+
+	return ret;
+}
+
+static void JNICALL
+quit (JNIEnv *env, jclass thiz)
+{
+	kill_server (XMMS_OBJECT (mainobj));
 }
 
 /**
@@ -212,6 +236,7 @@ xmms_main_destroy (xmms_object_t *object)
 	xmms_main_t *mainobj = (xmms_main_t *) object;
 	xmms_object_cmd_arg_t arg;
 	xmms_config_property_t *cv;
+	JNIEnv *env = get_env ();
 
 	/* stop output */
 	xmms_object_cmd_arg_init (&arg);
@@ -242,16 +267,9 @@ xmms_main_destroy (xmms_object_t *object)
 
 	xmms_log_shutdown ();
 
-	JNIEnv *env = NULL;
-
-	if ((*global_jvm)->GetEnv (global_jvm, (void **)&env, JNI_VERSION_1_6) != JNI_OK) {
-		GPrivate *key = g_private_new (thread_destroy);
-		g_private_set (key, (gpointer)1);
-
-		(*global_jvm)->AttachCurrentThread (global_jvm, &env, NULL);
-	}
-
 	(*env)->DeleteGlobalRef (env, server_object);
+	(*env)->DeleteGlobalRef (env, mainobj->java_cache->server_class);
+	xmmsv_unref (mainobj->coll_query_args);
 }
 
 /**
@@ -278,36 +296,6 @@ load_config (void)
 	xmms_config_init (conffile);
 }
 
-/**
- * @internal Switch to using another output plugin
- * @param object An object
- * @param data The name of the output plugin to switch to
- * @param userdata The #xmms_main_t object
- */
-static void
-change_output (xmms_object_t *object, xmmsv_t *_data, gpointer userdata)
-{
-	xmms_output_plugin_t *plugin;
-	xmms_main_t *mainobj = (xmms_main_t*)userdata;
-	const gchar *outname;
-
-	if (!mainobj->output_object)
-		return;
-
-	outname = xmms_config_property_get_string ((xmms_config_property_t *) object);
-
-	xmms_log_info ("Switching to output %s", outname);
-
-	plugin = (xmms_output_plugin_t *)xmms_plugin_find (XMMS_PLUGIN_TYPE_OUTPUT, outname);
-	if (!plugin) {
-		xmms_log_error ("Baaaaad output plugin, try to change the output.plugin config variable to something useful");
-	} else {
-		if (!xmms_output_plugin_switch (mainobj->output_object, plugin)) {
-			xmms_log_error ("Baaaaad output plugin, try to change the output.plugin config variable to something useful");
-		}
-	}
-}
-
 static void
 setup_ipc ()
 {
@@ -329,49 +317,97 @@ setup_ipc ()
 	}
 }
 
-static JNIEnv *
-get_env ()
+static jstring
+dict_get_jstring (JNIEnv *env, xmmsv_t *dict, const char *key)
 {
-	JNIEnv *ret = NULL;
+	const char *val;
+	jstring tmp;
+	xmmsv_dict_entry_get_string (dict, key, &val);
 
-	if ((*global_jvm)->GetEnv (global_jvm, (void **)&ret, JNI_VERSION_1_6) != JNI_OK) {
-		GPrivate *key = g_private_new (thread_destroy);
-		g_private_set (key, (gpointer)1);
-
-		(*global_jvm)->AttachCurrentThread (global_jvm, &ret, NULL);
+	tmp = (*env)->NewStringUTF (env, val);
+	if (tmp == NULL) {
+		return NULL;
 	}
-
-	return ret;
+	return (*env)->NewLocalRef (env, tmp);
 }
 
-// TODO cleanup, cache, error check
 static void
 current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 {
 	int32_t id[1];
-	xmms_object_cmd_arg_t arg;
-	xmmsv_coll_t *coll;
-	xmmsv_t *fetch;
-	xmmsv_t *a;
-	const char *artist;
-	const char *title;
 	jstring s;
-	jstring jartist;
-	jstring jtitle;
-	jclass clazz;
-	jmethodID method;
+	jstring artist;
+	jstring title;
 	JNIEnv *env = get_env ();
+	xmmsv_coll_t *coll;
+	xmms_object_cmd_arg_t arg;
+	xmms_main_t *m = (xmms_main_t *) userdata;
 
 	if (!xmmsv_get_int (data, &(id[0]))) {
 		return;
 	}
-	XMMS_DBG ("current id: %d", id[0]);
+
 	xmms_object_cmd_arg_init (&arg);
-	arg.args = xmmsv_new_list ();
+	xmmsv_list_get_coll (m->coll_query_args, 0, &coll);
+	xmmsv_coll_set_idlist (coll, id);
+
+	arg.args = m->coll_query_args;
+
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->colldag_object),
+	                      XMMS_IPC_CMD_QUERY, &arg);
+
+	(*env)->PushLocalFrame (env, 2);
+
+	artist = dict_get_jstring (env, arg.retval, "artist");
+	if (artist == NULL) {
+		goto current_id_error;
+	}
+	title = dict_get_jstring (env, arg.retval, "title");
+	if (title == NULL) {
+		goto current_id_error;
+	}
+
+	(*env)->CallVoidMethod (env, server_object, m->java_cache->currently_playing,
+	                        artist, title);
+
+current_id_error:
+	(*env)->PopLocalFrame (env, NULL);
+}
+
+static xmms_main_java_cache_t *
+create_java_cache (JNIEnv *env, jobject thiz)
+{
+	xmms_main_java_cache_t *cache;
+	jclass clazz = (*env)->GetObjectClass (env, thiz);
+	g_return_val_if_fail (clazz, NULL);
+
+	cache = g_new0 (xmms_main_java_cache_t, 1);
+	g_return_val_if_fail (cache, NULL);
+	
+	server_object = (*env)->NewGlobalRef (env, thiz);
+	cache->server_class = (*env)->NewGlobalRef (env, clazz);
+	cache->plugin_path_get = (*env)->GetMethodID (env, clazz, "getPluginPath",
+	                                              "()Ljava/lang/String;");
+	cache->server_ready = (*env)->GetMethodID (env, clazz, "serverReady", "()V");
+	cache->currently_playing = (*env)->GetMethodID (env, clazz,
+	                                                "setCurrentlyPlayingInfo",
+	                                                "(Ljava/lang/String;Ljava/lang/String;)V");
+
+	return cache;
+}
+
+static xmmsv_t *
+create_coll_query_args ()
+{
+	xmmsv_t *args;
+	xmmsv_coll_t *coll;
+	xmmsv_t *fetch;
+	xmmsv_t *a;
+
+	args = xmmsv_new_list ();
 
 	coll = xmmsv_coll_new (XMMS_COLLECTION_TYPE_IDLIST);
-	xmmsv_coll_set_idlist (coll, id);
-	xmmsv_list_append_coll (arg.args, coll);
+	xmmsv_list_append_coll (args, coll);
 
 	fetch = xmmsv_new_dict ();
 	xmmsv_dict_set_string (fetch, "type", "metadata");
@@ -387,77 +423,40 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	xmmsv_list_append_string (a, "value");
 
 	xmmsv_dict_set (fetch, "get", a);
-	xmmsv_list_append (arg.args, fetch);
+	xmmsv_list_append (args, fetch);
 
-	xmms_object_cmd_call (XMMS_OBJECT (mainobj->colldag_object),
-	                      XMMS_IPC_CMD_QUERY, &arg);
-	xmmsv_unref (arg.args);
-
-	xmmsv_dict_entry_get_string (arg.retval, "artist", &artist);
-	xmmsv_dict_entry_get_string (arg.retval, "title", &title);
-
-	(*env)->PushLocalFrame (env, 2);
-
-	s = (*env)->NewStringUTF (env, artist);
-	if (s == NULL) {
-		XMMS_DBG ("Error making artistic string");
-		return;
-	}
-	jartist = (*env)->NewLocalRef (env, s);
-
-	s = (*env)->NewStringUTF (env, title);
-	if (s == NULL) {
-		XMMS_DBG ("Error making title string");
-		return;
-	}
-	jtitle = (*env)->NewLocalRef (env, s);
-
-	clazz = (*env)->GetObjectClass (env, server_object);
-	if (clazz == NULL) {
-		XMMS_DBG ("error getting class");
-		return;
-	}
-	method = (*env)->GetMethodID (env, clazz, "setCurrentlyPlayingInfo",
-	                              "(Ljava/lang/String;Ljava/lang/String;)V");
-	if (method == NULL) {
-		XMMS_DBG ("error getting method..");
-		return;
-	}
-	(*env)->CallVoidMethod (env, server_object, method, jartist, jtitle);
-
-	(*env)->PopLocalFrame (env, NULL);
+	return args;
 }
 
 static void JNICALL
-start_service (JNIEnv *env, jclass thiz)
+start_service (JNIEnv *env, jobject thiz)
 {
 	xmms_output_plugin_t *o_plugin;
 	xmms_config_property_t *cv;
 	gchar *uuid = NULL;
 	const gchar *outname = NULL;
-	const gchar *plugin_path = NULL;
+	gchar *plugin_path = NULL;
 	int loglevel = 0;
-	jmethodID method;
-	jclass clazz;
+	xmms_main_java_cache_t *java_cache = create_java_cache (env, thiz);
 
-	server_object = (*env)->NewGlobalRef (env, thiz);
+	if (!java_cache) {
+		xmms_log_fatal ("fail!");
+		return;
+	}
 
 	g_thread_init (NULL);
 
 	g_random_set_seed (time (NULL));
 
 	xmms_log_init (loglevel);
-	xmms_log_info("starting...");
 
 	xmms_ipc_init ();
 	load_config ();
 
 	setup_ipc ();
 
-	clazz = (*env)->GetObjectClass (env, thiz);
-	method = (*env)->GetMethodID (env, clazz, "getPluginPath", "()Ljava/lang/String;");
-	if (method) {
-		jobject *plugins = (*env)->CallObjectMethod (env, thiz, method);
+	{
+		jobject *plugins = (*env)->CallObjectMethod (env, thiz, java_cache->plugin_path_get);
 		const char *str = (*env)->GetStringUTFChars (env, plugins, 0);
 		plugin_path = g_strdup (str);
 		(*env)->ReleaseStringUTFChars (env, plugins, str);
@@ -467,7 +466,10 @@ start_service (JNIEnv *env, jclass thiz)
 		xmms_log_fatal ("plugin init fail");
 	}
 
+	g_free (plugin_path);
+
 	mainobj = xmms_object_new (xmms_main_t, xmms_main_destroy);
+	mainobj->java_cache = java_cache;
 
 	mainobj->medialib_object = xmms_medialib_init ();
 	mainobj->colldag_object = xmms_collection_init (mainobj->medialib_object);
@@ -488,7 +490,7 @@ start_service (JNIEnv *env, jclass thiz)
 	/* find output plugin. */
 	cv = xmms_config_property_register ("output.plugin",
 	                                    XMMS_OUTPUT_DEFAULT,
-	                                    change_output, mainobj);
+	                                    NULL, NULL);
 
 	outname = xmms_config_property_get_string (cv);
 	xmms_log_info ("Using output plugin: %s", outname);
@@ -507,6 +509,7 @@ start_service (JNIEnv *env, jclass thiz)
 	}
 
 	mainobj->visualization_object = xmms_visualization_new (mainobj->output_object);
+	mainobj->coll_query_args = create_coll_query_args ();
 
 	xmms_signal_init (XMMS_OBJECT (mainobj));
 
@@ -514,15 +517,13 @@ start_service (JNIEnv *env, jclass thiz)
 
 	xmms_object_connect (XMMS_OBJECT (mainobj->output_object),
 	                     XMMS_IPC_SIGNAL_PLAYBACK_CURRENTID,
-	                     &current_id_handler, NULL);
+	                     &current_id_handler, mainobj);
 
 	/* Save the time we started in order to count uptime */
 	mainobj->starttime = time (NULL);
 
 	mainloop = g_main_loop_new (NULL, FALSE);
 
-	clazz = (*env)->GetObjectClass (env, thiz);
-	method = (*env)->GetMethodID (env, clazz, "serverReady", "()V");
-	(*env)->CallVoidMethod (env, thiz, method);
+	(*env)->CallVoidMethod (env, thiz, java_cache->server_ready);
 	g_main_loop_run (mainloop);
 }
