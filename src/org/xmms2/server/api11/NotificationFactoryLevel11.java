@@ -3,10 +3,8 @@ package org.xmms2.server.api11;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import org.xmms2.server.NotificationFactory;
 import org.xmms2.server.R;
-import org.xmms2.server.ServiceTest;
 
 /**
  * @author Eclipser
@@ -14,17 +12,19 @@ import org.xmms2.server.ServiceTest;
 public class NotificationFactoryLevel11 implements NotificationFactory
 {
     private Context context;
+    private final PendingIntent pendingIntent;
 
-    public NotificationFactoryLevel11(Context context)
+    public NotificationFactoryLevel11(Context context, PendingIntent pendingIntent)
     {
         this.context = context;
+        this.pendingIntent = pendingIntent;
     }
 
     @Override
     public Notification getNotification(String title, String text, String ticker)
     {
         Notification.Builder builder = new Notification.Builder(context);
-        builder.setContentIntent(PendingIntent.getActivity(context, 0, new Intent(context, ServiceTest.class), 0));
+        builder.setContentIntent(pendingIntent);
         builder.setContentText(title);
         builder.setContentInfo(text);
         builder.setTicker(ticker);

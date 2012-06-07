@@ -42,12 +42,12 @@ static void xmms_main_client_hello (xmms_object_t *object, gint protocolver, con
 
 #include "main_ipc.c"
 
-static void JNICALL start_service (JNIEnv *env, jclass thiz);
-static void JNICALL quit (JNIEnv *env, jclass thiz);
+static void JNICALL start_service (JNIEnv *env, jobject thiz);
+static void JNICALL quit (JNIEnv *env, jobject thiz);
 
 static JNINativeMethod methods[] = {
 	{"start", "()V", start_service},
-	{"quit", "()V", quit}
+	{"quit", "()V", quit},
 };
 
 JavaVM *global_jvm;
@@ -438,6 +438,7 @@ start_service (JNIEnv *env, jclass thiz)
 	const gchar *plugin_path = NULL;
 	int loglevel = 0;
 	jmethodID method;
+	jclass clazz;
 
 	server_object = (*env)->NewGlobalRef (env, thiz);
 
@@ -453,7 +454,7 @@ start_service (JNIEnv *env, jclass thiz)
 
 	setup_ipc ();
 
-	jclass clazz = (*env)->GetObjectClass (env, thiz);
+	clazz = (*env)->GetObjectClass (env, thiz);
 	method = (*env)->GetMethodID (env, clazz, "getPluginPath", "()Ljava/lang/String;");
 	if (method) {
 		jobject *plugins = (*env)->CallObjectMethod (env, thiz, method);
@@ -520,5 +521,8 @@ start_service (JNIEnv *env, jclass thiz)
 
 	mainloop = g_main_loop_new (NULL, FALSE);
 
+	clazz = (*env)->GetObjectClass (env, thiz);
+	method = (*env)->GetMethodID (env, clazz, "serverReady", "()V");
+	(*env)->CallVoidMethod (env, thiz, method);
 	g_main_loop_run (mainloop);
 }
