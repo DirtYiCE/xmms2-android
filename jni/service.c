@@ -58,6 +58,7 @@ typedef struct {
 	jmethodID currently_playing;
 	jmethodID plugin_path_get;
 	jmethodID server_ready;
+	jmethodID update_status;
 } xmms_main_java_cache_t;
 
 /**
@@ -332,6 +333,20 @@ dict_get_jstring (JNIEnv *env, xmmsv_t *dict, const char *key)
 }
 
 static void
+status_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
+{
+	JNIEnv *env = get_env ();
+	int32_t status;
+	xmms_main_t *m = (xmms_main_t *) userdata;
+
+	if (!xmmsv_get_int (data, &status)) {
+		return;
+	}
+
+	(*env)->CallVoidMethod (env, server_object, m->java_cache->update_status, status);
+}
+
+static void
 current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 {
 	int32_t id[1];
@@ -392,6 +407,7 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	cache->currently_playing = (*env)->GetMethodID (env, clazz,
 	                                                "setCurrentlyPlayingInfo",
 	                                                "(Ljava/lang/String;Ljava/lang/String;)V");
+	cache->update_status = (*env)->GetMethodID (env, clazz, "updateStatus", "(I)V");
 
 	return cache;
 }
@@ -518,6 +534,10 @@ start_service (JNIEnv *env, jobject thiz)
 	xmms_object_connect (XMMS_OBJECT (mainobj->output_object),
 	                     XMMS_IPC_SIGNAL_PLAYBACK_CURRENTID,
 	                     &current_id_handler, mainobj);
+
+	xmms_object_connect (XMMS_OBJECT (mainobj->output_object),
+	                     XMMS_IPC_SIGNAL_PLAYBACK_STATUS,
+	                     &status_handler, mainobj);
 
 	/* Save the time we started in order to count uptime */
 	mainobj->starttime = time (NULL);

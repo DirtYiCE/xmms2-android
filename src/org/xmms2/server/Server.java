@@ -33,6 +33,8 @@ public class Server extends Service
     private Thread serverThread;
     private String pluginPath;
     private boolean running;
+    private String nowPlaying;
+    private String status;
 
     private native void start();
     private native void quit();
@@ -147,8 +149,34 @@ public class Server extends Service
 
     private void setCurrentlyPlayingInfo(String artist, String title)
     {
-        Notification note = notificationFactory.getNotification(artist, title, String.format("%s - %s", artist, title));
+        nowPlaying = String.format("%s - %s", artist, title);
+        updateNotification();
+    }
+
+    private void updateStatus(int status)
+    {
+        this.status = String.format("XMMS2 [%s]", stringStatus(status));
+        updateNotification();
+    }
+
+    private void updateNotification()
+    {
+        Notification note = notificationFactory.getNotification(status, nowPlaying, nowPlaying);
         startForeground(ONGOING_NOTIFICATION, note);
+    }
+
+    private String stringStatus(int status)
+    {
+        switch (status) {
+            case 0:
+                return "Stopped";
+            case 1:
+                return "Playing";
+            case 2:
+                return "Paused";
+            default:
+                return "Unknown";
+        }
     }
 
     private void serverReady()
