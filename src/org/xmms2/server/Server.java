@@ -50,6 +50,8 @@ public class Server extends Service
     };
     private MediaObserver mediaObserver;
     private PlaybackStatusListener playbackStatusListener;
+    private boolean focusLost = false;
+    private boolean headset = true;
 
     private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener()
     {
@@ -57,10 +59,12 @@ public class Server extends Service
         public void onAudioFocusChange(int focusChange)
         {
             if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-                if (oldStatus == 1) {
+                if (headset && focusLost && oldStatus == 1) {
                     play();
                 }
+                focusLost = false;
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+                focusLost = true;
                 pause();
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                 Log.d("XMMS2 Output", "Focus loss transient can duck");
@@ -77,11 +81,13 @@ public class Server extends Service
                 return;
             }
             if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
+                headset = false;
                 pause();
             } else if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) && intent.getExtras().getInt("state") == 1) {
-                if (oldStatus == 1) {
+                if (!focusLost && oldStatus == 1) {
                     play();
                 }
+                headset = true;
             }
         }
     };
