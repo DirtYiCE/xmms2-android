@@ -4,20 +4,24 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.util.Log;
+import org.xmms2.server.PlaybackStatusListener;
+import org.xmms2.server.Server;
 
 /**
  * @author Eclipser
  */
-public class Output implements AudioManager.OnAudioFocusChangeListener
+public class Output implements PlaybackStatusListener
 {
     private AudioTrack audioTrack;
     private int bufferSize;
     private AudioManager audioManager;
+    private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
 
-    public Output(Context context)
+    public Output(Server server)
     {
-        this.audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        this.audioManager = (AudioManager) server.getSystemService(Context.AUDIO_SERVICE);
+        audioFocusChangeListener = server.getAudioFocusChangeListener();
+        server.registerPlaybackListener(this);
     }
 
     public int getBufferSize()
@@ -27,7 +31,9 @@ public class Output implements AudioManager.OnAudioFocusChangeListener
 
     public boolean open()
     {
-        int ret = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
+        int ret = audioManager.requestAudioFocus(audioFocusChangeListener,
+                                                 AudioManager.STREAM_MUSIC,
+                                                 AudioManager.AUDIOFOCUS_GAIN);
         return ret == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     }
 
@@ -43,7 +49,7 @@ public class Output implements AudioManager.OnAudioFocusChangeListener
         if (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
             audioTrack.stop();
         }
-        audioManager.abandonAudioFocus(this);
+        audioManager.abandonAudioFocus(audioFocusChangeListener);
     }
 
     public boolean write(byte[] buffer, int length)
@@ -81,17 +87,13 @@ public class Output implements AudioManager.OnAudioFocusChangeListener
         return audioTrack.getState() == AudioTrack.STATE_INITIALIZED;
     }
 
+    // Because the server doesn't tell "non-status API" output plugin if it's a pause, we'll listen to this here
+    // and stop the audiotrack in case of pause.
     @Override
-    public void onAudioFocusChange(int focusChange)
+    public void playbackStatusChanged(int newStatus)
     {
-        if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-           Log.d("XMMS2 Output", "Focus gained");
-        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-            Log.d("XMMS2 Output", "Focus lost");
-        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-            Log.d("XMMS2 Output", "Focus loss transient");
-        } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-            Log.d("XMMS2 Output", "Focus loss transient can duck");
+        if (newStatus == 2 && audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+            audioTrack.stop();
         }
     }
 }

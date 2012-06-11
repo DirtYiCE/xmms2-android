@@ -44,10 +44,19 @@ static void xmms_main_client_hello (xmms_object_t *object, gint protocolver, con
 
 static void JNICALL start_service (JNIEnv *env, jobject thiz);
 static void JNICALL quit (JNIEnv *env, jobject thiz);
+static void JNICALL playback_play (JNIEnv *env, jobject thiz);
+static void JNICALL playback_pause (JNIEnv *env, jobject thiz);
+static void JNICALL check_path (JNIEnv *env, jobject thiz, jstring path);
 
 static JNINativeMethod methods[] = {
 	{"start", "()V", start_service},
 	{"quit", "()V", quit},
+	{"play", "()V", playback_play},
+	{"pause", "()V", playback_pause},
+};
+
+static JNINativeMethod observer_methods[] = {
+	{"check", "(Ljava/lang/String;)V", check_path}
 };
 
 JavaVM *global_jvm;
@@ -193,7 +202,9 @@ JNI_OnLoad (JavaVM *vm, void *reserved)
 	(*env)->RegisterNatives (env, clazz, methods,
 	                         sizeof(methods)/sizeof(methods[0]));
 
-	xmms_log_info("Load successful!");
+	clazz = (*env)->FindClass (env, "org/xmms2/server/MediaObserver");
+	(*env)->RegisterNatives (env, clazz, observer_methods,
+	                         sizeof(observer_methods)/sizeof(observer_methods[0]));
 
 	global_jvm = vm;
 
@@ -225,6 +236,33 @@ static void JNICALL
 quit (JNIEnv *env, jclass thiz)
 {
 	kill_server (XMMS_OBJECT (mainobj));
+}
+
+static void JNICALL
+playback_play (JNIEnv *env, jobject thiz)
+{
+	xmms_object_cmd_arg_t arg;
+	xmms_object_cmd_arg_init (&arg);
+	arg.args = xmmsv_new_list ();
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
+	                      XMMS_IPC_CMD_PAUSE, &arg);
+	xmmsv_unref (arg.args);
+}
+
+static void JNICALL
+playback_pause (JNIEnv *env, jobject thiz)
+{
+	xmms_object_cmd_arg_t arg;
+	xmms_object_cmd_arg_init (&arg);
+	arg.args = xmmsv_new_list ();
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
+	                      XMMS_IPC_CMD_START, &arg);
+	xmmsv_unref (arg.args);
+}
+
+static void JNICALL
+check_path (JNIEnv *env, jobject thiz, jstring path)
+{
 }
 
 /**

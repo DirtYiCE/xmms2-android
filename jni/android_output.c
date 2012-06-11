@@ -84,16 +84,11 @@ setup_output()
 	xmms_android_data_t *data;
 	JNIEnv *env = get_env ();
 	jmethodID ctor;
-	jobject context;
 	jclass clazz;
 
 	g_return_val_if_fail (env, NULL);
 	data = g_new0 (xmms_android_data_t, 1);
 	g_return_val_if_fail (data, NULL);
-
-	clazz = (*env)->GetObjectClass (env, server_object);
-	ctor = (*env)->GetMethodID (env, clazz, "getApplicationContext", "()Landroid/content/Context;");
-	context = (*env)->CallObjectMethod (env, server_object, ctor);
 
 	data->output_class = (*env)->FindClass (env, "org/xmms2/server/plugins/Output");
 	if (!(data->output_class)) {
@@ -101,7 +96,7 @@ setup_output()
 	}
 	data->output_class = (*env)->NewGlobalRef (env, data->output_class);
 
-	ctor = (*env)->GetMethodID (env, data->output_class, "<init>", "(Landroid/content/Context;)V");
+	ctor = (*env)->GetMethodID (env, data->output_class, "<init>", "(Lorg/xmms2/server/Server;)V");
 	if (!ctor) {
 		goto setup_error;
 	}
@@ -131,7 +126,7 @@ setup_output()
 		goto setup_error;
 	}
 
-	data->output_object = (*env)->NewObject (env, data->output_class, ctor, context);
+	data->output_object = (*env)->NewObject (env, data->output_class, ctor, server_object);
 	if (!(data->output_object)) {
 		goto setup_error;
 	}
