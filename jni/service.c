@@ -245,7 +245,7 @@ playback_play (JNIEnv *env, jobject thiz)
 	xmms_object_cmd_arg_init (&arg);
 	arg.args = xmmsv_new_list ();
 	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
-	                      XMMS_IPC_CMD_PAUSE, &arg);
+	                      XMMS_IPC_CMD_START, &arg);
 	xmmsv_unref (arg.args);
 }
 
@@ -256,7 +256,7 @@ playback_pause (JNIEnv *env, jobject thiz)
 	xmms_object_cmd_arg_init (&arg);
 	arg.args = xmmsv_new_list ();
 	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
-	                      XMMS_IPC_CMD_START, &arg);
+	                      XMMS_IPC_CMD_PAUSE, &arg);
 	xmmsv_unref (arg.args);
 }
 

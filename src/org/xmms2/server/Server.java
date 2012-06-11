@@ -68,6 +68,24 @@ public class Server extends Service
         }
     };
 
+    private BroadcastReceiver headsetReceiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            if (!running) {
+                return;
+            }
+            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
+                pause();
+            } else if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) && intent.getExtras().getInt("state") == 1) {
+                if (oldStatus == 1) {
+                    play();
+                }
+            }
+        }
+    };
+
     private native void play();
     private native void pause();
 
@@ -97,6 +115,11 @@ public class Server extends Service
         filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
         filter.addAction(Intent.ACTION_MEDIA_REMOVED);
         registerReceiver(storageStateReceiver, filter);
+
+        filter = new IntentFilter();
+        filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        filter.addAction(Intent.ACTION_HEADSET_PLUG);
+        registerReceiver(headsetReceiver, filter);
 
         mediaObserver = new MediaObserver(Environment.getExternalStorageDirectory().getAbsolutePath());
 
@@ -183,6 +206,7 @@ public class Server extends Service
         stopForeground(true);
         mediaObserver.stopWatching();
         unregisterReceiver(storageStateReceiver);
+        unregisterReceiver(headsetReceiver);
         removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
     }
 
