@@ -425,6 +425,8 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 
 current_id_error:
 	(*env)->PopLocalFrame (env, NULL);
+
+	xmmsv_unref (arg.retval);
 }
 
 static xmms_main_java_cache_t *
