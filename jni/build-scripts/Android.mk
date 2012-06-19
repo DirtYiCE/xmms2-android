@@ -55,6 +55,11 @@ OGG_INCLUDE := $(LOCAL_PATH)/$(OGG_TOP)/include $(OGG_CONFIG)/include
 TREMOR_TOP := tremor
 TREMOR_SOURCE := $(TREMOR_TOP)
 
+CURL_TOP := curl
+CURL_SOURCE := $(CURL_TOP)/lib
+CURL_CONFIG := $(LOCAL_PATH)/config/curl
+CURL_INCLUDE := $(LOCAL_PATH)/$(CURL_TOP)/include $(CURL_CONFIG) $(CURL_CONFIG)/curl
+
 include $(BUILD_SCRIPTS_DIR)/iconv/iconv.mk
 include $(BUILD_SCRIPTS_DIR)/glib/pcre.mk
 include $(BUILD_SCRIPTS_DIR)/glib/glib.mk
@@ -62,12 +67,14 @@ include $(BUILD_SCRIPTS_DIR)/glib/gmodule.mk
 include $(BUILD_SCRIPTS_DIR)/glib/gthread.mk
 include $(BUILD_SCRIPTS_DIR)/s4/s4.mk
 include $(BUILD_SCRIPTS_DIR)/flac/flac.mk
+include $(BUILD_SCRIPTS_DIR)/curl/curl.mk
 include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
 include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/curl.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/mad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/id3v2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/tremor.mk

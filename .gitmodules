@@ -22,3 +22,6 @@
 [submodule "jni/ogg"]
 	path = jni/ogg
 	url = git://git.xiph.org/mirrors/ogg.git
+[submodule "jni/curl"]
+	path = jni/curl
+	url = git://github.com/bagder/curl.git
