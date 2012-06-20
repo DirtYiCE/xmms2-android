@@ -1,0 +1,13 @@
+include $(CLEAR_VARS)
+
+ICY_SOURCE := $(XMMS_PLUGINS)/icymetaint
+
+LOCAL_SRC_FILES := $(ICY_SOURCE)/icymetaint.c
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH) $(GLIB_INCLUDES) $(XMMS_INCLUDES)
+LOCAL_MODULE := icymetaint
+LOCAL_LDLIBS := -llog
+LOCAL_SHARED_LIBRARIES := glib-2.0 xmms2
+
+include $(BUILD_SHARED_LIBRARY)
+

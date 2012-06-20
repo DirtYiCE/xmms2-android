@@ -25,3 +25,6 @@
 [submodule "jni/curl"]
 	path = jni/curl
 	url = git://github.com/bagder/curl.git
+[submodule "jni/faad"]
+	path = jni/faad
+	url = git://git.debian.org/git/pkg-multimedia/faad2.git

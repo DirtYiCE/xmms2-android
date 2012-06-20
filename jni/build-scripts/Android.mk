@@ -55,6 +55,11 @@ OGG_INCLUDE := $(LOCAL_PATH)/$(OGG_TOP)/include $(OGG_CONFIG)/include
 TREMOR_TOP := tremor
 TREMOR_SOURCE := $(TREMOR_TOP)
 
+FAAD_TOP := faad
+FAAD_SOURCE := $(FAAD_TOP)/libfaad
+FAAD_CONFIG := $(LOCAL_PATH)/config/faad
+FAAD_INCLUDE := $(LOCAL_PATH)/$(FAAD_TOP)/include $(FAAD_CONFIG)
+
 CURL_TOP := curl
 CURL_SOURCE := $(CURL_TOP)/lib
 CURL_CONFIG := $(LOCAL_PATH)/config/curl
@@ -68,14 +73,17 @@ include $(BUILD_SCRIPTS_DIR)/glib/gthread.mk
 include $(BUILD_SCRIPTS_DIR)/s4/s4.mk
 include $(BUILD_SCRIPTS_DIR)/flac/flac.mk
 include $(BUILD_SCRIPTS_DIR)/curl/curl.mk
+include $(BUILD_SCRIPTS_DIR)/faad/faad.mk
 include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
 include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/faad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/curl.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/mad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/id3v2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/android.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/icymetaint.mk
