@@ -4,6 +4,7 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.util.Log;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
@@ -64,8 +65,8 @@ public class Output implements PlaybackStatusListener, Runnable
         audioManager.abandonAudioFocus(audioFocusChangeListener);
     }
 
-    private final LinkedBlockingQueue<byte[]> free = new LinkedBlockingQueue<byte[]>(15);
-    private final LinkedBlockingQueue<byte[]> buffers = new LinkedBlockingQueue<byte[]>(15);
+    private final LinkedBlockingQueue<byte[]> free = new LinkedBlockingQueue<byte[]>(10);
+    private final LinkedBlockingQueue<byte[]> buffers = new LinkedBlockingQueue<byte[]>(10);
     private byte[] a;
     private int bufpos = 0;
     private int latency = 0;
@@ -108,6 +109,7 @@ public class Output implements PlaybackStatusListener, Runnable
 
             if (byteCount < length) {
                 System.arraycopy(buffer, byteCount, a, bufpos, length - byteCount);
+                bufpos = length - byteCount;
             }
         }
         return false;
