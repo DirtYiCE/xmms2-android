@@ -13,7 +13,7 @@ typedef struct xmms_android_data_St {
 	jmethodID close;
 	jmethodID flush;
 	jmethodID set_format;
-	jmethodID latency_get;
+	jfieldID latency;
 
 	jbyteArray buffer;
 } xmms_android_data_t;
@@ -129,8 +129,8 @@ setup_output()
 		goto setup_error;
 	}
 
-	data->latency_get = (*env)->GetMethodID (env, data->output_class, "getLatency", "()I");
-	if (!(data->set_format)) {
+	data->latency = (*env)->GetFieldID (env, data->output_class, "latency", "I");
+	if (!(data->latency)) {
 		goto setup_error;
 	}
 
@@ -335,7 +335,7 @@ xmms_android_latency_get (xmms_output_t *output)
 	data = xmms_output_private_data_get (output);
 	g_return_val_if_fail (data, 0);
 
-	ret = (*env)->CallIntMethod (env, data->output_object, data->latency_get);
+	ret = (*env)->GetIntField (env, data->output_object, data->latency);
 
 	return ret;
 }

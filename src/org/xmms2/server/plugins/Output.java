@@ -4,7 +4,6 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.util.Log;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
@@ -69,6 +68,7 @@ public class Output implements PlaybackStatusListener, Runnable
     private final LinkedBlockingQueue<byte[]> buffers = new LinkedBlockingQueue<byte[]>(15);
     private byte[] a;
     private int bufpos = 0;
+    private int latency = 0;
 
     public boolean write(byte[] buffer, int length)
     {
@@ -99,6 +99,7 @@ public class Output implements PlaybackStatusListener, Runnable
 
         if (bufpos == a.length) {
             buffers.put(a);
+            updateLatency();
             bufpos = 0;
             a = free.poll();
             if (a == null) {
@@ -187,6 +188,7 @@ public class Output implements PlaybackStatusListener, Runnable
             byte b[];
             try {
                 b = buffers.take();
+                updateLatency();
                 // TODO: we might lose a buffer or two around here when the playback is paused
                 if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                     audioTrack.write(b, 0, b.length);
@@ -198,9 +200,10 @@ public class Output implements PlaybackStatusListener, Runnable
         }
     }
 
-    // TODO not accurate
-    public int getLatency()
+    // TODO inaccurate
+    private void updateLatency()
     {
-        return buffers.size() * 4096 + bufpos;
+        latency = buffers.size() * 4096 + bufpos;
     }
+
 }
