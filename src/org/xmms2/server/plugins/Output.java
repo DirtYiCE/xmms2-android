@@ -7,7 +7,6 @@ import android.media.AudioTrack;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -56,52 +55,72 @@ public class Output implements PlaybackStatusListener, Runnable
     {
         if (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
             audioTrack.stop();
-            playing = false;
-            buffers.clear();
-            pausedBuffers.clear();
             audioThread.interrupt();
         }
+        playing = false;
+        buffers.clear();
+        pausedBuffers.clear();
         audioManager.abandonAudioFocus(audioFocusChangeListener);
     }
 
-    private final LinkedBlockingQueue<byte[]> buffers = new LinkedBlockingQueue<byte[]>(10);
-    private ByteBuffer a = ByteBuffer.allocate(4096);
+    private final LinkedBlockingQueue<byte[]> free = new LinkedBlockingQueue<byte[]>(8);
+    private final LinkedBlockingQueue<byte[]> buffers = new LinkedBlockingQueue<byte[]>(8);
+    private byte[] a;
+    private int bufpos = 0;
 
     public boolean write(byte[] buffer, int length)
     {
-        if (audioThread == null || audioThread.isInterrupted() || !audioThread.isAlive()) {
-            audioThread = new Thread(this, "XMMS2 Android Audio");
-            playing = true;
-            if (!pausedBuffers.isEmpty()) {
-                buffers.addAll(pausedBuffers);
-                pausedBuffers.clear();
+        try {
+            if (audioThread == null || audioThread.isInterrupted() || !audioThread.isAlive()) {
+                initAudioThread();
             }
-            audioThread.start();
+
+            if (buffers.size() >= 3) {
+                synchronized (buffers) {
+                    buffers.notify();
+                }
+            }
+
+            fillBuffer(buffer, length);
+
+            return audioThread.isAlive();
+        } catch (InterruptedException e) {
+            return false;
         }
+    }
 
-        if (buffers.size() >= 3) {
-            synchronized (buffers) {
-                buffers.notify();
-            }
-        }
+    private boolean fillBuffer(byte[] buffer, int length) throws InterruptedException
+    {
+        int byteCount = Math.min(a.length - bufpos, length);
+        System.arraycopy(buffer, 0, a, bufpos, byteCount);
+        bufpos = bufpos + byteCount;
 
-        int byteCount = Math.min(a.remaining(), length);
-        a.put(buffer, 0, byteCount);
-
-        if (!a.hasRemaining()) {
-            try {
-                buffers.put(a.array());
-            } catch (InterruptedException e) {
-                return false;
-            }
-            a = ByteBuffer.allocate(4096);
+        if (bufpos == a.length) {
+            buffers.put(a);
+            bufpos = 0;
+            a = free.take();
 
             if (byteCount < length) {
-                a.put(buffer, byteCount, length - byteCount);
+                System.arraycopy(buffer, byteCount, a, bufpos, length - byteCount);
             }
         }
+        return false;
+    }
 
-        return audioThread.isAlive();
+    private void initAudioThread() throws InterruptedException
+    {
+        audioThread = new Thread(this, "XMMS2 Android Audio");
+        playing = true;
+        free.clear();
+        while (free.remainingCapacity() > 0) {
+            free.put(new byte[4096]);
+        }
+        a = free.take();
+        if (!pausedBuffers.isEmpty()) {
+            buffers.addAll(pausedBuffers);
+            pausedBuffers.clear();
+        }
+        audioThread.start();
     }
 
     public boolean setFormat(int format, int channels, int rate)
@@ -139,6 +158,7 @@ public class Output implements PlaybackStatusListener, Runnable
             buffers.drainTo(pausedBuffers);
             buffers.clear();
             audioTrack.stop();
+            audioThread.interrupt();
         }
     }
 
@@ -158,16 +178,24 @@ public class Output implements PlaybackStatusListener, Runnable
             audioTrack.play();
         }
 
-        while (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+        while (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && !audioThread.isInterrupted()) {
             byte b[];
             try {
                 b = buffers.take();
+                // TODO: we might lose a buffer or two around here when the playback is paused
+                if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                    audioTrack.write(b, 0, b.length);
+                    free.put(b);
+                }
             } catch (InterruptedException e) {
                 break;
             }
-            if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
-                audioTrack.write(b, 0, b.length);
-            }
         }
+    }
+
+    // TODO not accurate
+    public int getLatency()
+    {
+        return buffers.size() * 4096 + bufpos;
     }
 }

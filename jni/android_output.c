@@ -13,6 +13,7 @@ typedef struct xmms_android_data_St {
 	jmethodID close;
 	jmethodID flush;
 	jmethodID set_format;
+	jmethodID latency_get;
 
 	jbyteArray buffer;
 } xmms_android_data_t;
@@ -27,6 +28,7 @@ static void xmms_android_write (xmms_output_t *output, gpointer buffer,
                                 gint len, xmms_error_t *err);
 static gboolean xmms_android_format_set (xmms_output_t *output,
                                          const xmms_stream_type_t *format);
+static guint xmms_android_latency_get (xmms_output_t *output);
 
 XMMS_OUTPUT_PLUGIN ("android",
                     "Android output",
@@ -72,6 +74,7 @@ xmms_android_plugin_setup (xmms_output_plugin_t *plugin)
 	methods.close = xmms_android_close;
 	methods.format_set = xmms_android_format_set;
 	methods.write = xmms_android_write;
+	methods.latency_get = xmms_android_latency_get;
 
 	xmms_output_plugin_methods_set (plugin, &methods);
 
@@ -122,6 +125,11 @@ setup_output()
 	}
 
 	data->set_format = (*env)->GetMethodID (env, data->output_class, "setFormat", "(III)Z");
+	if (!(data->set_format)) {
+		goto setup_error;
+	}
+
+	data->latency_get = (*env)->GetMethodID (env, data->output_class, "getLatency", "()I");
 	if (!(data->set_format)) {
 		goto setup_error;
 	}
@@ -311,6 +319,23 @@ xmms_android_format_set (xmms_output_t *output, const xmms_stream_type_t *format
 
 	ret = (*env)->CallBooleanMethod (env, data->output_object, data->set_format,
 	                                 2, channels, srate);
+
+	return ret;
+}
+
+static guint
+xmms_android_latency_get (xmms_output_t *output)
+{
+	xmms_android_data_t *data;
+	jint ret = 0;
+	JNIEnv *env = get_env();
+
+	g_return_val_if_fail (env, 0);
+	g_return_val_if_fail (output, 0);
+	data = xmms_output_private_data_get (output);
+	g_return_val_if_fail (data, 0);
+
+	ret = (*env)->CallIntMethod (env, data->output_object, data->latency_get);
 
 	return ret;
 }
