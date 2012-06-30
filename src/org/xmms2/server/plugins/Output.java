@@ -4,6 +4,7 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.util.Log;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
@@ -46,6 +47,7 @@ public class Output implements PlaybackStatusListener, Runnable
     public void flush()
     {
         buffers.clear();
+        pausedBuffers.clear();
         if (audioTrack != null) {
             audioTrack.flush();
         }
@@ -63,8 +65,8 @@ public class Output implements PlaybackStatusListener, Runnable
         audioManager.abandonAudioFocus(audioFocusChangeListener);
     }
 
-    private final LinkedBlockingQueue<byte[]> free = new LinkedBlockingQueue<byte[]>(8);
-    private final LinkedBlockingQueue<byte[]> buffers = new LinkedBlockingQueue<byte[]>(8);
+    private final LinkedBlockingQueue<byte[]> free = new LinkedBlockingQueue<byte[]>(15);
+    private final LinkedBlockingQueue<byte[]> buffers = new LinkedBlockingQueue<byte[]>(15);
     private byte[] a;
     private int bufpos = 0;
 
@@ -98,7 +100,10 @@ public class Output implements PlaybackStatusListener, Runnable
         if (bufpos == a.length) {
             buffers.put(a);
             bufpos = 0;
-            a = free.take();
+            a = free.poll();
+            if (a == null) {
+                a = new byte[4096];
+            }
 
             if (byteCount < length) {
                 System.arraycopy(buffer, byteCount, a, bufpos, length - byteCount);
@@ -185,7 +190,7 @@ public class Output implements PlaybackStatusListener, Runnable
                 // TODO: we might lose a buffer or two around here when the playback is paused
                 if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                     audioTrack.write(b, 0, b.length);
-                    free.put(b);
+                    free.offer(b);
                 }
             } catch (InterruptedException e) {
                 break;
