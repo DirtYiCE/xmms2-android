@@ -65,6 +65,11 @@ CURL_SOURCE := $(CURL_TOP)/lib
 CURL_CONFIG := $(LOCAL_PATH)/config/curl
 CURL_INCLUDE := $(LOCAL_PATH)/$(CURL_TOP)/include $(CURL_CONFIG) $(CURL_CONFIG)/curl
 
+MODPLUG_TOP := modplug/libmodplug
+MODPLUG_SOURCE := $(MODPLUG_TOP)/src
+MODPLUG_CONFIG := $(LOCAL_PATH)/config/modplug
+MODPLUG_INCLUDE := $(LOCAL_PATH)/$(MODPLUG_SOURCE) $(MODPLUG_CONFIG)
+
 include $(BUILD_SCRIPTS_DIR)/iconv/iconv.mk
 include $(BUILD_SCRIPTS_DIR)/glib/pcre.mk
 include $(BUILD_SCRIPTS_DIR)/glib/glib.mk
@@ -76,6 +81,7 @@ include $(BUILD_SCRIPTS_DIR)/curl/curl.mk
 #include $(BUILD_SCRIPTS_DIR)/faad/faad.mk  # disabled, super slow
 include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
 include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
+include $(BUILD_SCRIPTS_DIR)/modplug/modplug.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
@@ -85,5 +91,6 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/curl.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/mad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/id3v2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/tremor.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/modplug.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/android.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/icymetaint.mk

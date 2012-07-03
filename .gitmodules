@@ -28,3 +28,6 @@
 [submodule "jni/faad"]
 	path = jni/faad
 	url = git://git.debian.org/git/pkg-multimedia/faad2.git
+[submodule "jni/modplug"]
+	path = jni/modplug
+	url = git://modplug-xmms.git.sourceforge.net/gitroot/modplug-xmms/modplug-xmms
