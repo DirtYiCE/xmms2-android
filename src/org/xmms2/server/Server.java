@@ -108,7 +108,10 @@ public class Server extends Service
     {
         super.onCreate();
         removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, new Intent(ACTION_START_CLIENT), 0);
+        Intent intent = new Intent(ACTION_START_CLIENT);
+        intent.putExtra("address", "tcp://127.0.0.1:9667");
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
 
         if (Build.VERSION.SDK_INT >= 11) {
             notificationFactory = new NotificationFactoryLevel11(getApplicationContext(), pendingIntent);
@@ -191,6 +194,7 @@ public class Server extends Service
                     stopForeground(true);
                     removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
                     mediaObserver.stopWatching();
+                    stopSelf();
                 }
             });
 
@@ -249,8 +253,7 @@ public class Server extends Service
 
     private void updateNotification()
     {
-        String status = String.format("XMMS2 [%s]", stringStatus(this.status));
-        Notification note = notificationFactory.getNotification(status, nowPlaying, nowPlaying);
+        Notification note = notificationFactory.getNotification("XMMS2", nowPlaying, nowPlaying, stringStatus(status));
         startForeground(ONGOING_NOTIFICATION, note);
     }
 

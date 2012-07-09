@@ -21,10 +21,10 @@ public class NotificationFactoryLevel8 implements NotificationFactory
     }
 
     @Override
-    public Notification getNotification(String title, String text, String ticker)
+    public Notification getNotification(String title, String text, String ticker, String info)
     {
         Notification notification = new Notification(R.drawable.notification, ticker, System.currentTimeMillis());
-        notification.setLatestEventInfo(context, title, text, pendingIntent);
+        notification.setLatestEventInfo(context, String.format("%s %s", title, info), text, pendingIntent);
         notification.sound = null;
 
         return notification;

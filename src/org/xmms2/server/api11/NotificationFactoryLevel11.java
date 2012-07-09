@@ -21,12 +21,13 @@ public class NotificationFactoryLevel11 implements NotificationFactory
     }
 
     @Override
-    public Notification getNotification(String title, String text, String ticker)
+    public Notification getNotification(String title, String text, String ticker, String info)
     {
         Notification.Builder builder = new Notification.Builder(context);
         builder.setContentIntent(pendingIntent);
-        builder.setContentText(title);
-        builder.setContentInfo(text);
+        builder.setContentTitle(title);
+        builder.setContentText(text);
+        builder.setContentInfo(info);
         builder.setTicker(ticker);
         builder.setOngoing(true);
         builder.setWhen(System.currentTimeMillis());
