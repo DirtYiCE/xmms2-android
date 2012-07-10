@@ -157,6 +157,14 @@ public class Output implements PlaybackStatusListener, Runnable
         return audioTrack.getState() == AudioTrack.STATE_INITIALIZED;
     }
 
+    @Override
+    public void adjustVolume(float left, float right)
+    {
+        if (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+            audioTrack.setStereoVolume(left, right);
+        }
+    }
+
     // Because the server doesn't tell "non-status API" output plugin if it's a pause, we'll listen to this here
     // and stop the audiotrack in case of pause.
     @Override

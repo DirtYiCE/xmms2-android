@@ -23,6 +23,8 @@ import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 /**
@@ -51,7 +53,9 @@ public class Server extends Service
     private MediaObserver mediaObserver;
     private PlaybackStatusListener playbackStatusListener;
     private boolean focusLost = false;
-    private boolean headset = true;
+    private boolean headset = false;
+    private AudioManager audioManager;
+    private boolean ducked;
 
     private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener()
     {
@@ -59,15 +63,24 @@ public class Server extends Service
         public void onAudioFocusChange(int focusChange)
         {
             if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-                if (headset && focusLost && oldStatus == 1) {
+                if (ducked) {
+                    playbackStatusListener.adjustVolume(1.0f, 1.0f);
+                    ducked = false;
+                }
+
+                if (!audioManager.isSpeakerphoneOn() && headset && focusLost && oldStatus == 1) {
                     play();
                 }
                 focusLost = false;
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
                 focusLost = true;
-                pause();
+                if (status == 1) {
+                    pause();
+                }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                Log.d("XMMS2 Output", "Focus loss transient can duck");
+                Log.d("XMMS2", "duck!");
+                ducked = true;
+                playbackStatusListener.adjustVolume(0.1f, 0.1f);
             }
         }
     };
@@ -81,9 +94,12 @@ public class Server extends Service
                 return;
             }
             if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
+                if (status == 1) {
+                    pause();
+                }
                 headset = false;
-                pause();
-            } else if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) && intent.getExtras().getInt("state") == 1) {
+            } else if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) &&
+                       intent.getExtras().getInt("state") == 1) {
                 if (!focusLost && oldStatus == 1) {
                     play();
                 }
@@ -131,6 +147,7 @@ public class Server extends Service
         registerReceiver(headsetReceiver, filter);
 
         mediaObserver = new MediaObserver(Environment.getExternalStorageDirectory().getAbsolutePath());
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         File pluginsDirOut = new File(getFilesDir(), "/plugins/");
         pluginPath = pluginsDirOut.getAbsolutePath();
