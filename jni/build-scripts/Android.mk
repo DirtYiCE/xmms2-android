@@ -94,3 +94,4 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/modplug.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/android.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/icymetaint.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/mp4.mk
