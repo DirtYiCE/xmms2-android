@@ -1,9 +1,9 @@
 include $(CLEAR_VARS)
 
 MAD_SOURCE := $(XMMS_PLUGINS)/mad
+MP3_COMMON := $(XMMS_PLUGINS)/mp3_common
 
 LOCAL_SRC_FILES := \
-	$(MAD_SOURCE)/id3v1.c \
 	$(MAD_SOURCE)/mad.c \
 	$(MAD_SOURCE)/xing.c
 
