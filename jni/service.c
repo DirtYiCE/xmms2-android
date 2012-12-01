@@ -165,14 +165,16 @@ xmms_main_client_hello (xmms_object_t *object, gint protocolver, const gchar *cl
 
 static gboolean
 kill_server (gpointer object) {
-	xmms_object_emit_f (XMMS_OBJECT (object),
-	                    XMMS_IPC_SIGNAL_QUIT,
-	                    XMMSV_TYPE_INT32,
-	                    time (NULL)-((xmms_main_t*)object)->starttime);
+	xmms_main_t *mainobj = (xmms_main_t *) object;
+	gint uptime = time (NULL) - mainobj->starttime;
+
+	xmms_object_emit (XMMS_OBJECT (object),
+	                  XMMS_IPC_SIGNAL_QUIT,
+	                  xmmsv_new_int (uptime));
 
 	xmms_object_unref (object);
 
-	g_main_loop_quit (mainloop);
+	exit (EXIT_SUCCESS);
 }
 
 
