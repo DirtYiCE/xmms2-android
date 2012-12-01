@@ -93,7 +93,7 @@ __int_xmms_cmd_list (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 	}
 
 
-	arg->retval = xmms_convert_and_kill_list (xmms_bindata_client_list ((xmms_bindata_t *) object, &arg->error));
+	arg->retval = xmms_bindata_client_list ((xmms_bindata_t *) object, &arg->error);
 }
 
 

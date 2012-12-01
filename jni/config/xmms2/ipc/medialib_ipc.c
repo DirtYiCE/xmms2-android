@@ -23,10 +23,7 @@ __int_xmms_cmd_get_info (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 
-	GTree * retval = xmms_medialib_client_get_info ((xmms_medialib_t *) object, argval0, &arg->error);
-	if (retval != NULL) {
-		arg->retval = xmms_convert_and_kill_dict (retval);
-	}
+	arg->retval = xmms_medialib_client_get_info ((xmms_medialib_t *) object, argval0, &arg->error);
 }
 
 

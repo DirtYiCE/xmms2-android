@@ -63,7 +63,7 @@ __int_xmms_cmd_list (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 
-	arg->retval = xmms_convert_and_kill_list (xmms_collection_client_list ((xmms_coll_dag_t *) object, argval0, &arg->error));
+	arg->retval = xmms_collection_client_list ((xmms_coll_dag_t *) object, argval0, &arg->error);
 }
 
 
@@ -187,7 +187,7 @@ __int_xmms_cmd_find (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 
-	arg->retval = xmms_convert_and_kill_list (xmms_collection_client_find ((xmms_coll_dag_t *) object, argval0, argval1, &arg->error));
+	arg->retval = xmms_collection_client_find ((xmms_coll_dag_t *) object, argval0, argval1, &arg->error);
 }
 
 
@@ -277,7 +277,7 @@ static void
 __int_xmms_cmd_query_infos (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 {
 	xmmsv_t *t;
-	if (xmmsv_list_get_size (arg->args) != 6) {
+	if (xmmsv_list_get_size (arg->args) != 5) {
 		XMMS_DBG ("Wrong number of arguments to query_infos (%d)", xmmsv_list_get_size (arg->args));
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Wrong number of arguments to query_infos");
 		return;
@@ -287,7 +287,6 @@ __int_xmms_cmd_query_infos (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 	gint32 argval2;
 	xmmsv_t * argval3;
 	xmmsv_t * argval4;
-	xmmsv_t * argval5;
 
 	if (!xmmsv_list_get (arg->args, 0, &t)) {
 		XMMS_DBG ("Missing arg 0 in query_infos");
@@ -331,14 +330,8 @@ __int_xmms_cmd_query_infos (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 	argval4 = t;
-	if (!xmmsv_list_get (arg->args, 5, &t)) {
-		XMMS_DBG ("Missing arg 5 in query_infos");
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 5 in query_infos");
-		return;
-	}
-	argval5 = t;
 
-	arg->retval = xmms_collection_client_query_infos ((xmms_coll_dag_t *) object, argval0, argval1, argval2, argval3, argval4, argval5, &arg->error);
+	arg->retval = xmms_collection_client_query_infos ((xmms_coll_dag_t *) object, argval0, argval1, argval2, argval3, argval4, &arg->error);
 }
 
 

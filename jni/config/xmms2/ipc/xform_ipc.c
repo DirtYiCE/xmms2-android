@@ -23,7 +23,7 @@ __int_xmms_cmd_browse (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 
-	arg->retval = xmms_convert_and_kill_list (xmms_xform_client_browse ((xmms_xform_object_t *) object, argval0, &arg->error));
+	arg->retval = xmms_xform_client_browse ((xmms_xform_object_t *) object, argval0, &arg->error);
 }
 
 

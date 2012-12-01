@@ -76,7 +76,7 @@ __int_xmms_cmd_list_plugins (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 
-	arg->retval = xmms_convert_and_kill_list (xmms_main_client_list_plugins ((xmms_object_t *) object, argval0, &arg->error));
+	arg->retval = xmms_main_client_list_plugins ((xmms_object_t *) object, argval0, &arg->error);
 }
 
 
@@ -90,10 +90,7 @@ __int_xmms_cmd_stats (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 	}
 
 
-	GTree * retval = xmms_main_client_stats ((xmms_object_t *) object, &arg->error);
-	if (retval != NULL) {
-		arg->retval = xmms_convert_and_kill_dict (retval);
-	}
+	arg->retval = xmms_main_client_stats ((xmms_object_t *) object, &arg->error);
 }
 
 
