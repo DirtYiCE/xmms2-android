@@ -86,7 +86,7 @@ public class Output implements PlaybackStatusListener, Runnable
 
             fillBuffer(buffer, length);
 
-            return audioThread.isAlive();
+            return true;
         } catch (InterruptedException e) {
             return false;
         }
