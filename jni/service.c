@@ -364,6 +364,7 @@ dict_get_jstring (JNIEnv *env, xmmsv_t *dict, const char *key)
 	const char *val;
 	jstring tmp;
 	xmmsv_dict_entry_get_string (dict, key, &val);
+	g_return_val_if_fail (val, NULL);
 
 	tmp = (*env)->NewStringUTF (env, val);
 	if (tmp == NULL) {
