@@ -30,6 +30,7 @@
 #include "xmmsc/xmmsc_util.h"
 
 extern JavaVM *global_jvm; 
+extern jobject server_object;
 const char *
 android_dir_get (const char *default_dir, char *buf, int len)
 {
@@ -39,10 +40,10 @@ android_dir_get (const char *default_dir, char *buf, int len)
 	}
 
 	jclass clazz = (*env)->FindClass (env, "org/xmms2/server/Server");
-	jmethodID method = (*env)->GetStaticMethodID (env, clazz, "getConfigDir", "()Ljava/lang/String;");
+	jmethodID method = (*env)->GetMethodID (env, clazz, "getConfigDir", "()Ljava/lang/String;");
 
 	if (method) {
-		jobject *dir_obj = (*env)->CallStaticObjectMethod (env, clazz, method);
+		jobject *dir_obj = (*env)->CallObjectMethod (env, server_object, method);
 		const char *elems = (*env)->GetStringUTFChars (env, dir_obj, 0);
 
 		if (elems) {
@@ -50,7 +51,6 @@ android_dir_get (const char *default_dir, char *buf, int len)
 		}
 
 		(*env)->ReleaseStringUTFChars (env, dir_obj, elems);
-
 	}
 
 	return buf;

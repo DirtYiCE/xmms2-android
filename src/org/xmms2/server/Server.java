@@ -237,10 +237,10 @@ public class Server extends Service
         removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
     }
 
-    // Should probably use Context.getExternalFilesDir() or rather just Context.getFilesDir()
-    private static String getConfigDir()
+    // Should probably use Context.getFilesDir()
+    private String getConfigDir()
     {
-        return Environment.getExternalStorageDirectory().getAbsolutePath();
+        return getExternalFilesDir(null).getAbsolutePath();
     }
 
     private String getPluginPath()

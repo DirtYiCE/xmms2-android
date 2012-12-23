@@ -18,12 +18,12 @@
 #define PKGLIBDIR "/data/data/org.xmms2.server/files/plugins"
 #define SYSCONFDIR "/etc/xmms2"
 #define SCRIPTDIR "/usr/local/share/xmms2/scripts/startup.d"
-#define USERCACHEDIR "xmms2/cache"
+#define USERCACHEDIR "cache"
 #define XMMS_VERSION "0.8 DrO_o (git commit: f5666fdd)"
 #define XMMS_OUTPUT_DEFAULT "android"
 #define SHAREDDIR "/usr/local/share/xmms2"
 #define BINDIR "/usr/local/bin"
-#define USERCONFDIR "xmms2/config"
+#define USERCONFDIR "config"
 #define XMMS_ANDROID_TAG "XMMS2"
 
 #endif /* _XMMS_CONFIGURATION_H_WAF */
