@@ -174,7 +174,7 @@ kill_server (gpointer object) {
 
 	xmms_object_unref (object);
 
-	exit (EXIT_SUCCESS);
+	g_main_loop_quit (mainloop);
 }
 
 
@@ -361,7 +361,7 @@ setup_ipc ()
 static jstring
 dict_get_jstring (JNIEnv *env, xmmsv_t *dict, const char *key)
 {
-	const char *val;
+	const char *val = NULL;
 	jstring tmp;
 	xmmsv_dict_entry_get_string (dict, key, &val);
 	g_return_val_if_fail (val, NULL);
@@ -394,6 +394,7 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	jstring s;
 	jstring artist;
 	jstring title;
+	jstring url;
 	JNIEnv *env = get_env ();
 	xmmsv_coll_t *coll;
 	xmms_object_cmd_arg_t arg;
@@ -415,18 +416,12 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	(*env)->PushLocalFrame (env, 2);
 
 	artist = dict_get_jstring (env, arg.retval, "artist");
-	if (artist == NULL) {
-		goto current_id_error;
-	}
 	title = dict_get_jstring (env, arg.retval, "title");
-	if (title == NULL) {
-		goto current_id_error;
-	}
+	url = dict_get_jstring (env, arg.retval, "url");
 
 	(*env)->CallVoidMethod (env, server_object, m->java_cache->currently_playing,
-	                        artist, title);
+	                        url, artist, title);
 
-current_id_error:
 	(*env)->PopLocalFrame (env, NULL);
 
 	xmmsv_unref (arg.retval);
@@ -449,7 +444,7 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	cache->server_ready = (*env)->GetMethodID (env, clazz, "serverReady", "()V");
 	cache->currently_playing = (*env)->GetMethodID (env, clazz,
 	                                                "setCurrentlyPlayingInfo",
-	                                                "(Ljava/lang/String;Ljava/lang/String;)V");
+	                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 	cache->update_status = (*env)->GetMethodID (env, clazz, "updateStatus", "(I)V");
 
 	return cache;
@@ -474,6 +469,7 @@ create_coll_query_args ()
 	a = xmmsv_new_list ();
 	xmmsv_list_append_string (a, "artist");
 	xmmsv_list_append_string (a, "title");
+	xmmsv_list_append_string (a, "url");
 
 	xmmsv_dict_set (fetch, "fields", a);
 

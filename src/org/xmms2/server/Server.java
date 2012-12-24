@@ -16,15 +16,11 @@ import android.util.Log;
 import org.xmms2.server.api11.NotificationFactoryLevel11;
 import org.xmms2.server.api8.NotificationFactoryLevel8;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.net.URLDecoder;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 /**
@@ -248,9 +244,20 @@ public class Server extends Service
         return pluginPath;
     }
 
-    private void setCurrentlyPlayingInfo(String artist, String title)
+    private void setCurrentlyPlayingInfo(String url, String artist, String title)
     {
-        nowPlaying = String.format("%s - %s", artist, title);
+        if (artist == null && title == null) {
+            try {
+                url = new File(URLDecoder.decode(url, "UTF-8")).getName();
+            } catch (UnsupportedEncodingException ignored) {}
+            nowPlaying = url;
+        } else if (artist == null) {
+            nowPlaying = title;
+        } else if (title == null) {
+            nowPlaying = artist;
+        } else {
+            nowPlaying = String.format("%s - %s", artist, title);
+        }
         updateNotification();
     }
 
