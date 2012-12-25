@@ -182,9 +182,6 @@ public class Output implements PlaybackStatusListener, Runnable
     {
         if (newStatus == 2 && audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && playing) {
             buffers.drainTo(pausedBuffers);
-            buffers.clear();
-            audioTrack.stop();
-            audioThread.interrupt();
         }
     }
 
@@ -213,7 +210,11 @@ public class Output implements PlaybackStatusListener, Runnable
                 // TODO: we might lose a buffer or two around here when the playback is paused
                 if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                     audioTrack.write(b, 0, b.length);
-                    free.offer(b);
+                    if (!pausedBuffers.isEmpty()) {
+                        pausedBuffers.add(b);
+                    } else {
+                        free.offer(b);
+                    }
                 }
             } catch (InterruptedException e) {
                 break;
