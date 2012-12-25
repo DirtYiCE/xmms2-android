@@ -24,6 +24,8 @@ public class Output implements PlaybackStatusListener, Runnable
     private boolean playing = false;
     private ArrayList<byte[]> pausedBuffers = new ArrayList<byte[]>();
 
+    private final Object lock = new Object();
+
     public Output(Server server)
     {
         this.audioManager = (AudioManager) server.getSystemService(Context.AUDIO_SERVICE);
@@ -143,6 +145,14 @@ public class Output implements PlaybackStatusListener, Runnable
             return false;
         }
 
+        if (audioTrack != null && audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+            try {
+                synchronized (lock) {
+                    lock.wait();
+                }
+            } catch (InterruptedException ignored) {}
+        }
+
         try {
             int bufferSize = AudioTrack.getMinBufferSize(rate, channelConfig, formatConfig) * 10;
             audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, rate,
@@ -194,7 +204,8 @@ public class Output implements PlaybackStatusListener, Runnable
             audioTrack.play();
         }
 
-        while (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && !audioThread.isInterrupted()) {
+        while (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING &&
+               !audioThread.isInterrupted() && !buffers.isEmpty()) {
             byte b[];
             try {
                 b = buffers.take();
@@ -206,6 +217,13 @@ public class Output implements PlaybackStatusListener, Runnable
                 }
             } catch (InterruptedException e) {
                 break;
+            }
+        }
+
+        if (audioTrack != null) {
+            audioTrack.stop();
+            synchronized (lock) {
+                lock.notify();
             }
         }
     }
