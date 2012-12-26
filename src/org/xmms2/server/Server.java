@@ -12,7 +12,6 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
-import android.util.Log;
 import org.xmms2.server.api11.NotificationFactoryLevel11;
 import org.xmms2.server.api8.NotificationFactoryLevel8;
 
@@ -74,7 +73,6 @@ public class Server extends Service
                     pause();
                 }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                Log.d("XMMS2", "duck!");
                 ducked = true;
                 playbackStatusListener.adjustVolume(0.1f, 0.1f);
             }

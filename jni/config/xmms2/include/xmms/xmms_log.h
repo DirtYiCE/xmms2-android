@@ -26,10 +26,20 @@
 #include <android/log.h>
 #include "xmms_configuration.h"
 
+#ifdef DEBUG
+
 #define XMMS_DBG(fmt, ...) __android_log_print(ANDROID_LOG_DEBUG, XMMS_ANDROID_TAG, __FILE__ ":" XMMS_STRINGIFY(__LINE__) ": " fmt, ## __VA_ARGS__)
 #define xmms_log_fatal(fmt, ...) __android_log_print(ANDROID_LOG_FATAL, XMMS_ANDROID_TAG, __FILE__ ":" XMMS_STRINGIFY(__LINE__) ": " fmt, ## __VA_ARGS__)
-#define xmms_log_info(fmt, ...) __android_log_print(ANDROID_LOG_INFO, XMMS_ANDROID_TAG, __BASE_FILE__ ":" XMMS_STRINGIFY(__LINE__) ": " fmt, ## __VA_ARGS__)
+#define xmms_log_info(fmt, ...) __android_log_print(ANDROID_LOG_INFO, XMMS_ANDROID_TAG, __FILE__ ":" XMMS_STRINGIFY(__LINE__) ": " fmt, ## __VA_ARGS__)
 #define xmms_log_error(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, XMMS_ANDROID_TAG, __FILE__ ":" XMMS_STRINGIFY(__LINE__) ": " fmt, ## __VA_ARGS__)
+
+#else
+#define XMMS_DBG(fmt, ...)
+#define xmms_log_fatal(fmt, ...) __android_log_print(ANDROID_LOG_FATAL, XMMS_ANDROID_TAG, fmt, ## __VA_ARGS__)
+#define xmms_log_info(fmt, ...) __android_log_print(ANDROID_LOG_INFO, XMMS_ANDROID_TAG, fmt, ## __VA_ARGS__)
+#define xmms_log_error(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, XMMS_ANDROID_TAG, fmt, ## __VA_ARGS__)
+#endif
+
 #define xmms_log_debug XMMS_DBG
 
 #else

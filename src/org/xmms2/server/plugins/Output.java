@@ -4,7 +4,6 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.util.Log;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
