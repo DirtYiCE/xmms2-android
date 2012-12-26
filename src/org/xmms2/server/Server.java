@@ -9,9 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.AssetManager;
 import android.media.AudioManager;
-import android.os.Build;
-import android.os.Environment;
-import android.os.IBinder;
+import android.os.*;
 import org.xmms2.server.api11.NotificationFactoryLevel11;
 import org.xmms2.server.api8.NotificationFactoryLevel8;
 
@@ -20,6 +18,8 @@ import java.net.URLDecoder;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 
 /**
@@ -28,7 +28,6 @@ import java.nio.channels.ReadableByteChannel;
 public class Server extends Service
 {
     public static final int ONGOING_NOTIFICATION = 1;
-    private static final String ACTION_SERVER_STATUS = "org.xmms2.server.action.SERVER_STATUS";
     private static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
     private NotificationFactory notificationFactory;
     private Thread serverThread;
@@ -51,6 +50,62 @@ public class Server extends Service
     private boolean headset = false;
     private AudioManager audioManager;
     private boolean ducked;
+
+    private final Queue<Messenger> queue = new ArrayDeque<Messenger>();
+
+    class MessageHandler extends Handler
+    {
+        static final int MSG_START = 1;
+
+        @Override
+        public void handleMessage(Message msg)
+        {
+            if (msg.what == MSG_START && msg.replyTo != null) {
+                synchronized (queue) {
+                    if (running) {
+                        notifyClient(msg.replyTo);
+                    } else {
+                        queue.add(msg.replyTo);
+                    }
+                }
+            } else {
+                super.handleMessage(msg);
+            }
+        }
+    }
+
+    private final Messenger messenger = new Messenger(new MessageHandler());
+
+    @Override
+    public IBinder onBind(Intent intent)
+    {
+        startService(new Intent(this, Server.class));
+        return messenger.getBinder();
+    }
+
+    private void notifyClient(Messenger messenger)
+    {
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("running", running);
+        bundle.putString("address", "tcp://localhost:9667");
+        Message reply = Message.obtain(null, MessageHandler.MSG_START);
+        reply.setData(bundle);
+        try {
+            messenger.send(reply);
+        } catch (RemoteException ignored) {}
+    }
+
+    private void serverReady()
+    {
+        synchronized (queue) {
+            running = true;
+            Messenger messenger = queue.poll();
+            while (messenger != null) {
+                notifyClient(messenger);
+                messenger = queue.poll();
+            }
+        }
+    }
 
     private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener()
     {
@@ -108,18 +163,12 @@ public class Server extends Service
     private native void start();
     private native void quit();
 
-    public IBinder onBind(Intent intent)
-    {
-        return null;
-    }
-
     @Override
     public void onCreate()
     {
         super.onCreate();
-        removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
         Intent intent = new Intent(ACTION_START_CLIENT);
-        intent.putExtra("address", "tcp://127.0.0.1:9667");
+        intent.putExtra("address", "tcp://localhost:9667");
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
 
@@ -194,7 +243,7 @@ public class Server extends Service
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         updateExternalStorageState();
-        if (!running && storageAvailable) {
+        if ((serverThread == null || !serverThread.isAlive()) && storageAvailable) {
             serverThread = new Thread(new Runnable()
             {
                 @Override
@@ -203,14 +252,12 @@ public class Server extends Service
                     start();
                     running = false;
                     stopForeground(true);
-                    removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
                     mediaObserver.stopWatching();
                     stopSelf();
                 }
             });
 
             serverThread.start();
-            running = true;
         }
         return START_NOT_STICKY;
     }
@@ -228,7 +275,6 @@ public class Server extends Service
         mediaObserver.stopWatching();
         unregisterReceiver(storageStateReceiver);
         unregisterReceiver(headsetReceiver);
-        removeStickyBroadcast(new Intent(ACTION_SERVER_STATUS));
     }
 
     // Should probably use Context.getFilesDir()
@@ -291,16 +337,6 @@ public class Server extends Service
             default:
                 return "Unknown";
         }
-    }
-
-    private void serverReady()
-    {
-        Intent intent = new Intent(ACTION_SERVER_STATUS);
-        intent.putExtra("running", true);
-        intent.putExtra("address", "tcp://localhost:9667");
-        sendStickyBroadcast(intent);
-
-        mediaObserver.startWatching();
     }
 
     public static void updateExternalStorageState()
