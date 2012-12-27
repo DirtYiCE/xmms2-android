@@ -1,5 +1,3 @@
 <resources>
-    <string name="app_name">xmms2-android</string>
-    <string name="permission_label">XMMS2 Control</string>
-    <string name="permission_description">Start and stop XMMS2 service</string>
+    <string name="app_name">XMMS2</string>
 </resources>
