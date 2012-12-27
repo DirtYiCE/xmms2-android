@@ -77,8 +77,10 @@ include $(BUILD_SCRIPTS_DIR)/glib/gmodule.mk
 include $(BUILD_SCRIPTS_DIR)/glib/gthread.mk
 include $(BUILD_SCRIPTS_DIR)/s4/s4.mk
 include $(BUILD_SCRIPTS_DIR)/flac/flac.mk
+ifneq ($(APP_ABI),x86)
 include $(BUILD_SCRIPTS_DIR)/curl/curl.mk
 include $(BUILD_SCRIPTS_DIR)/faad/faad.mk  # disabled, super slow
+endif
 include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
 include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
 include $(BUILD_SCRIPTS_DIR)/modplug/modplug.mk
@@ -86,8 +88,10 @@ include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
+ifneq ($(APP_ABI),x86)
 include $(BUILD_SCRIPTS_DIR)/xmms2/faad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/curl.mk
+endif
 include $(BUILD_SCRIPTS_DIR)/xmms2/mad.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/id3v2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/tremor.mk
