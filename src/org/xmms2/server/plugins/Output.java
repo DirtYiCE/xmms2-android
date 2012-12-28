@@ -9,6 +9,7 @@ import org.xmms2.server.Server;
 
 import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Eclipser
@@ -24,6 +25,9 @@ public class Output implements PlaybackStatusListener, Runnable
     private ArrayList<byte[]> pausedBuffers = new ArrayList<byte[]>();
 
     private final Object lock = new Object();
+    private int rate;
+    private int channelConfig;
+    private int formatConfig;
 
     public Output(Server server)
     {
@@ -57,7 +61,6 @@ public class Output implements PlaybackStatusListener, Runnable
     public void close()
     {
         if (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
-            audioTrack.stop();
             audioThread.interrupt();
         }
         playing = false;
@@ -144,26 +147,21 @@ public class Output implements PlaybackStatusListener, Runnable
             return false;
         }
 
-        if (audioTrack != null && audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
-            try {
-                synchronized (lock) {
+        synchronized (lock) {
+            if (audioTrack != null && audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+                try {
+                    // wait for the audio thread to stop, it should since this is blocking any new buffers to come in
                     lock.wait();
-                }
-            } catch (InterruptedException ignored) {}
+                } catch (InterruptedException ignored) {}
+            }
         }
 
-        try {
-            int bufferSize = AudioTrack.getMinBufferSize(rate, channelConfig, formatConfig) * 10;
-            audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, rate,
-                                        channelConfig, formatConfig,
-                                        bufferSize, AudioTrack.MODE_STREAM);
+        this.rate = rate;
+        this.channelConfig = channelConfig;
+        this.formatConfig = formatConfig;
+        this.bufferSize = AudioTrack.getMinBufferSize(rate, channelConfig, formatConfig) * 10;
 
-            this.bufferSize = bufferSize;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-
-        return audioTrack.getState() == AudioTrack.STATE_INITIALIZED;
+        return true;
     }
 
     @Override
@@ -195,16 +193,23 @@ public class Output implements PlaybackStatusListener, Runnable
             }
         }
 
-        if (audioTrack != null && audioTrack.getState() == AudioTrack.STATE_INITIALIZED
-                && audioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
+        audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, rate,
+                                   channelConfig, formatConfig,
+                                   bufferSize, AudioTrack.MODE_STREAM);
+
+        if (audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
+            audioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
             audioTrack.play();
         }
 
-        while (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING &&
-               !audioThread.isInterrupted() && !buffers.isEmpty()) {
+        while (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING &&
+               !audioThread.isInterrupted()) {
             byte b[];
             try {
-                b = buffers.take();
+                b = buffers.poll(20, TimeUnit.MILLISECONDS);
+                if (b == null) {
+                    break;
+                }
                 updateLatency();
                 // TODO: we might lose a buffer or two around here when the playback is paused
                 if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
@@ -222,9 +227,9 @@ public class Output implements PlaybackStatusListener, Runnable
 
         if (audioTrack != null) {
             audioTrack.stop();
-            synchronized (lock) {
-                lock.notify();
-            }
+        }
+        synchronized (lock) {
+            lock.notify();
         }
     }
 
