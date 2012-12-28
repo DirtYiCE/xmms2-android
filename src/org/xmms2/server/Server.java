@@ -18,7 +18,7 @@ import java.net.URLDecoder;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.util.ArrayDeque;
+import java.util.LinkedList;
 import java.util.Queue;
 
 
@@ -51,7 +51,7 @@ public class Server extends Service
     private AudioManager audioManager;
     private boolean ducked;
 
-    private final Queue<Messenger> queue = new ArrayDeque<Messenger>();
+    private final Queue<Messenger> queue = new LinkedList<Messenger>();
 
     class MessageHandler extends Handler
     {
