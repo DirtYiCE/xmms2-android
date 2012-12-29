@@ -225,7 +225,8 @@ public class Output implements PlaybackStatusListener, Runnable
             }
         }
 
-        if (audioTrack != null) {
+        if (audioTrack != null && audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
+            audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
             audioTrack.stop();
         }
         synchronized (lock) {
