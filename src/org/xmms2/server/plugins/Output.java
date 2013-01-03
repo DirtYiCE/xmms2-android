@@ -8,26 +8,31 @@ import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Eclipser
  */
 public class Output implements PlaybackStatusListener, Runnable
 {
+    private static final int BUFFER_SIZE = 4096;
     private AudioTrack audioTrack;
     private int bufferSize;
     private AudioManager audioManager;
     private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
     private Thread audioThread = null;
     private boolean playing = false;
-    private ArrayList<byte[]> pausedBuffers = new ArrayList<byte[]>();
+    private List<byte[]> pausedBuffers = new ArrayList<byte[]>();
 
     private final Object lock = new Object();
     private int rate;
     private int channelConfig;
     private int formatConfig;
+    private final AtomicBoolean formatChanged = new AtomicBoolean(false);
+    private final AtomicBoolean paused = new AtomicBoolean(false);
 
     public Output(Server server)
     {
@@ -82,7 +87,7 @@ public class Output implements PlaybackStatusListener, Runnable
                 initAudioThread();
             }
 
-            if (buffers.size() >= 3) {
+            if (audioTrack == null && buffers.size() >= 3) {
                 synchronized (buffers) {
                     buffers.notify();
                 }
@@ -108,7 +113,7 @@ public class Output implements PlaybackStatusListener, Runnable
             bufpos = 0;
             a = free.poll();
             if (a == null) {
-                a = new byte[4096];
+                a = new byte[BUFFER_SIZE];
             }
 
             if (byteCount < length) {
@@ -125,7 +130,7 @@ public class Output implements PlaybackStatusListener, Runnable
         playing = true;
         free.clear();
         while (free.remainingCapacity() > 0) {
-            free.put(new byte[4096]);
+            free.put(new byte[BUFFER_SIZE]);
         }
         a = free.take();
         if (!pausedBuffers.isEmpty()) {
@@ -147,19 +152,29 @@ public class Output implements PlaybackStatusListener, Runnable
             return false;
         }
 
+        this.rate = rate;
+        this.channelConfig = channelConfig;
+        this.formatConfig = formatConfig;
+        this.bufferSize = AudioTrack.getMinBufferSize(rate, channelConfig, formatConfig) * 10;
+
         synchronized (lock) {
             if (audioTrack != null && audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+
+                formatChanged.set(true);
                 try {
+                    if (bufpos > 0) { // put the last of the bytes belonging to the song in the play queue
+                        byte[] b = new byte[bufpos];
+                        System.arraycopy(a, 0, b, 0, bufpos);
+                        bufpos = 0;
+                        buffers.put(b);
+                        a = free.take();
+                    }
+
                     // wait for the audio thread to stop, it should since this is blocking any new buffers to come in
                     lock.wait();
                 } catch (InterruptedException ignored) {}
             }
         }
-
-        this.rate = rate;
-        this.channelConfig = channelConfig;
-        this.formatConfig = formatConfig;
-        this.bufferSize = AudioTrack.getMinBufferSize(rate, channelConfig, formatConfig) * 10;
 
         return true;
     }
@@ -178,6 +193,7 @@ public class Output implements PlaybackStatusListener, Runnable
     public void playbackStatusChanged(int newStatus)
     {
         if (newStatus == 2 && audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && playing) {
+            paused.set(true);
             buffers.drainTo(pausedBuffers);
         }
     }
@@ -185,59 +201,69 @@ public class Output implements PlaybackStatusListener, Runnable
     @Override
     public void run()
     {
-        if (buffers.size() < 3) {
-            synchronized (buffers) {
-                try {
-                    buffers.wait();
-                } catch (InterruptedException ignored) {}
+        while (!audioThread.isInterrupted() && playing) {
+            audioTrack = null;
+            if (buffers.size() < 3) {
+                synchronized (buffers) {
+                    try {
+                        buffers.wait();
+                    } catch (InterruptedException ignored) {}
+                }
             }
-        }
 
-        audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, rate,
-                                   channelConfig, formatConfig,
-                                   bufferSize, AudioTrack.MODE_STREAM);
+            audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, rate,
+                                       channelConfig, formatConfig,
+                                       bufferSize, AudioTrack.MODE_STREAM);
 
-        if (audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
-            audioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
-            audioTrack.play();
-        }
+            if (audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
+                audioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
+                paused.set(false);
+                audioTrack.play();
+            }
 
-        while (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING &&
-               !audioThread.isInterrupted()) {
-            byte b[];
             try {
-                b = buffers.poll(20, TimeUnit.MILLISECONDS);
-                if (b == null) {
-                    break;
-                }
-                updateLatency();
-                // TODO: we might lose a buffer or two around here when the playback is paused
-                if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
-                    audioTrack.write(b, 0, b.length);
-                    if (!pausedBuffers.isEmpty()) {
-                        pausedBuffers.add(b);
-                    } else {
-                        free.offer(b);
-                    }
-                }
-            } catch (InterruptedException e) {
-                break;
+                playLoop();
+            } catch (InterruptedException ignored) {}
+
+            if (audioTrack != null && audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
+                audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+                audioTrack.stop();
+            }
+
+            synchronized (lock) {
+                lock.notify();
+                formatChanged.set(false);
             }
         }
+    }
 
-        if (audioTrack != null && audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
-            audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
-            audioTrack.stop();
-        }
-        synchronized (lock) {
-            lock.notify();
+    private void playLoop() throws InterruptedException
+    {
+        while (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING &&
+               !audioThread.isInterrupted() && !paused.get()) {
+            byte b[] = null;
+            while (b == null && !audioThread.isInterrupted()) {
+                b = buffers.poll(20, TimeUnit.MILLISECONDS);
+                if (b == null && formatChanged.get()) {
+                    return;
+                }
+            }
+
+            updateLatency();
+
+            if (b != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                audioTrack.write(b, 0, b.length);
+            }
+            if (b != null && b.length == BUFFER_SIZE) {
+                free.offer(b);
+            }
         }
     }
 
     // TODO inaccurate
     private void updateLatency()
     {
-        latency = buffers.size() * 4096 + bufpos;
+        latency = buffers.size() * BUFFER_SIZE + bufpos;
     }
 
 }
