@@ -71,7 +71,7 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/visualization/format.c \
     $(XMMS_SOURCE)/xmms/visualization/udp.c
 
-LOCAL_CFLAGS := -pthread -D_SEM_SEMUN_UNDEFINED
+LOCAL_CFLAGS := -pthread -D_SEM_SEMUN_UNDEFINED $(DEBUG_FLAG)
 
 LOCAL_C_INCLUDES := $(GLIB_INCLUDES) $(GMODULE_INCLUDES) $(S4_INCLUDE) $(XMMS_INCLUDES)
 

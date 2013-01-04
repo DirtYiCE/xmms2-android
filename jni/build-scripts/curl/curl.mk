@@ -107,7 +107,7 @@ LOCAL_SRC_FILES := \
 	$(CURL_SOURCE)/curl_multibyte.c
 
 LOCAL_C_INCLUDES := $(CURL_INCLUDE) $(CURL_CONFIG)/curl
-LOCAL_CFLAGS := -Wpointer-arith -Wwrite-strings -Wunused -Winline -Wnested-externs -Wmissing-declarations -Wmissing-prototypes -Wno-long-long -Wfloat-equal -Wno-multichar -Wsign-compare -Wno-format-nonliteral -Wendif-labels -Wstrict-prototypes -Wdeclaration-after-statement -Wno-system-headers -DHAVE_CONFIG_H
+LOCAL_CFLAGS := -Wpointer-arith -Wwrite-strings -Wunused -Winline -Wnested-externs -Wmissing-declarations -Wmissing-prototypes -Wno-long-long -Wfloat-equal -Wno-multichar -Wsign-compare -Wno-format-nonliteral -Wendif-labels -Wstrict-prototypes -Wdeclaration-after-statement -Wno-system-headers -DHAVE_CONFIG_H $(DEBUG_FLAG)
 
 LOCAL_LDLIBS := -lz
 LOCAL_MODULE := curllib
