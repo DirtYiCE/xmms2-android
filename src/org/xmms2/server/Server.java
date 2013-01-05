@@ -28,7 +28,7 @@ import java.util.Queue;
 public class Server extends Service
 {
     public static final int ONGOING_NOTIFICATION = 1;
-    private static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
+    public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
     private NotificationFactory notificationFactory;
     private Thread serverThread;
     private String pluginPath;
