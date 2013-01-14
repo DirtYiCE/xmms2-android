@@ -31,3 +31,6 @@
 [submodule "jni/modplug"]
 	path = jni/modplug
 	url = git://modplug-xmms.git.sourceforge.net/gitroot/modplug-xmms/modplug-xmms
+[submodule "jni/opus"]
+	path = jni/opus
+	url = git://git.opus-codec.org/opus.git

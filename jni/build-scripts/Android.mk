@@ -38,6 +38,10 @@ MAD_TOP := mad
 MAD_SOURCE := $(MAD_TOP)
 MAD_INCLUDES := $(LOCAL_PATH)/$(MAD_SOURCE)
 
+OPUS_TOP := opus
+OPUS_SOURCE := $(OPUS_TOP)
+OPUS_INCLUDES := $(LOCAL_PATH)/$(OPUS_SOURCE)/include
+
 S4_TOP := s4
 S4 := $(LOCAL_PATH)/$(S4_TOP)
 S4_INCLUDE := $(S4)/include
@@ -85,6 +89,7 @@ include $(BUILD_SCRIPTS_DIR)/mad/mad.mk
 include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
 include $(BUILD_SCRIPTS_DIR)/modplug/modplug.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
+include $(BUILD_SCRIPTS_DIR)/opus/opus.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
@@ -100,3 +105,4 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/android.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/icymetaint.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/mp4.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/equalizer.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/opus.mk
