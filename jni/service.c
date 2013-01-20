@@ -47,6 +47,7 @@ static void JNICALL quit (JNIEnv *env, jobject thiz);
 static void JNICALL playback_play (JNIEnv *env, jobject thiz);
 static void JNICALL playback_pause (JNIEnv *env, jobject thiz);
 static void JNICALL playback_stop (JNIEnv *env, jobject thiz);
+static void JNICALL playback_toggle (JNIEnv *env, jobject thiz);
 static void JNICALL playback_next (JNIEnv *env, jobject thiz);
 static void JNICALL playback_previous (JNIEnv *env, jobject thiz);
 static void JNICALL check_path (JNIEnv *env, jobject thiz, jstring path);
@@ -57,6 +58,7 @@ static JNINativeMethod methods[] = {
 	{"play", "()V", playback_play},
 	{"pause", "()V", playback_pause},
 	{"stop", "()V", playback_stop},
+	{"toggle", "()V", playback_toggle},
 	{"next", "()V", playback_next},
 	{"previous", "()V", playback_previous},
 };
@@ -265,6 +267,26 @@ playback_pause (JNIEnv *env, jobject thiz)
 	arg.args = xmmsv_new_list ();
 	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
 	                      XMMS_IPC_CMD_PAUSE, &arg);
+	xmmsv_unref (arg.args);
+}
+
+static void JNICALL
+playback_toggle (JNIEnv *env, jobject thiz)
+{
+	xmms_object_cmd_arg_t arg;
+	int32_t status;
+	xmms_object_cmd_arg_init (&arg);
+	arg.args = xmmsv_new_list ();
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
+	                      XMMS_IPC_CMD_PLAYBACK_STATUS, &arg);
+	if (!xmmsv_get_int (arg.retval, &status)) {
+		return;
+	}
+	if (status == XMMS_PLAYBACK_STATUS_PLAY) {
+		playback_pause (env, thiz);
+	} else {
+		playback_play (env, thiz);
+	}
 	xmmsv_unref (arg.args);
 }
 

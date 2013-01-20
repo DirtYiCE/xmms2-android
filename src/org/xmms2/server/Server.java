@@ -2,12 +2,13 @@ package org.xmms2.server;
 
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.*;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioManager;
+import android.media.MediaMetadataRetriever;
+import android.media.RemoteControlClient;
 import android.os.*;
 import android.support.v4.app.NotificationCompat;
 import android.widget.RemoteViews;
@@ -180,14 +181,18 @@ public class Server extends Service
         }
     };
 
-    private native void play();
-    private native void pause();
-    private native void stop();
-    private native void next();
-    private native void previous();
+    static native void play();
+    static native void pause();
+    static native void stop();
+    static native void toggle();
+    static native void next();
+    static native void previous();
 
     private native void start();
     private native void quit();
+
+    private ComponentName mediaButtonEventHandler;
+    private RemoteControlClient remoteControlClient;
 
     @Override
     public void onCreate()
@@ -253,6 +258,20 @@ public class Server extends Service
             }
         } catch (IOException ignored) {}
 
+        mediaButtonEventHandler = new ComponentName(this, MediaButtonEventHandler.class);
+        // build the PendingIntent for the remote control client
+        Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
+        mediaButtonIntent.setComponent(mediaButtonEventHandler);
+        PendingIntent mediaPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, mediaButtonIntent, 0);
+
+        // create and register the remote control client
+        remoteControlClient = new RemoteControlClient(mediaPendingIntent);
+        remoteControlClient.setTransportControlFlags(RemoteControlClient.FLAG_KEY_MEDIA_NEXT |
+                                                     RemoteControlClient.FLAG_KEY_MEDIA_PREVIOUS |
+                                                     RemoteControlClient.FLAG_KEY_MEDIA_PLAY_PAUSE |
+                                                     RemoteControlClient.FLAG_KEY_MEDIA_STOP);
+        audioManager.registerMediaButtonEventReceiver(mediaButtonEventHandler);
+        audioManager.registerRemoteControlClient(remoteControlClient);
     }
 
     private static void copyFile(InputStream input, File output, long length) throws IOException
@@ -306,6 +325,8 @@ public class Server extends Service
     {
         stopForeground(true);
         mediaObserver.stopWatching();
+        audioManager.unregisterMediaButtonEventReceiver(mediaButtonEventHandler);
+        audioManager.unregisterRemoteControlClient(remoteControlClient);
         unregisterReceiver(notificationActionReceiver);
         unregisterReceiver(storageStateReceiver);
         unregisterReceiver(headsetReceiver);
@@ -338,6 +359,10 @@ public class Server extends Service
         this.title = title;
         this.artist = artist;
         updateNotification();
+        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.logo);
+        remoteControlClient.editMetadata(true).putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, artist)
+                                              .putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, bitmap)
+                                              .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, title).apply();
     }
 
     private void updateStatus(int status)
@@ -349,7 +374,9 @@ public class Server extends Service
         }
         if (status == 0) {
             stopForeground(true);
+            remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_STOPPED);
         } else {
+            remoteControlClient.setPlaybackState(status == 1 ? RemoteControlClient.PLAYSTATE_PLAYING : RemoteControlClient.PLAYSTATE_PAUSED);
             notificationView.setImageViewResource(R.id.toggle, status == 1 ? R.drawable.pause : R.drawable.play);
             updateNotification();
         }
