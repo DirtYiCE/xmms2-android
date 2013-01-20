@@ -46,6 +46,9 @@ static void JNICALL start_service (JNIEnv *env, jobject thiz);
 static void JNICALL quit (JNIEnv *env, jobject thiz);
 static void JNICALL playback_play (JNIEnv *env, jobject thiz);
 static void JNICALL playback_pause (JNIEnv *env, jobject thiz);
+static void JNICALL playback_stop (JNIEnv *env, jobject thiz);
+static void JNICALL playback_next (JNIEnv *env, jobject thiz);
+static void JNICALL playback_previous (JNIEnv *env, jobject thiz);
 static void JNICALL check_path (JNIEnv *env, jobject thiz, jstring path);
 
 static JNINativeMethod methods[] = {
@@ -53,6 +56,9 @@ static JNINativeMethod methods[] = {
 	{"quit", "()V", quit},
 	{"play", "()V", playback_play},
 	{"pause", "()V", playback_pause},
+	{"stop", "()V", playback_stop},
+	{"next", "()V", playback_next},
+	{"previous", "()V", playback_previous},
 };
 
 static JNINativeMethod observer_methods[] = {
@@ -263,6 +269,57 @@ playback_pause (JNIEnv *env, jobject thiz)
 }
 
 static void JNICALL
+playback_stop (JNIEnv *env, jobject thiz)
+{
+	xmms_object_cmd_arg_t arg;
+	xmms_object_cmd_arg_init (&arg);
+	arg.args = xmmsv_new_list ();
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
+	                      XMMS_IPC_CMD_STOP, &arg);
+	xmmsv_unref (arg.args);
+}
+
+static void
+playback_tickle ()
+{
+	xmms_object_cmd_arg_t arg;
+	xmms_object_cmd_arg_init (&arg);
+	arg.args = xmmsv_new_list ();
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
+	                      XMMS_IPC_CMD_DECODER_KILL, &arg);
+	xmmsv_unref (arg.args);
+}
+
+static void
+playlist_set_pos_rel (int32_t rel_pos)
+{
+	xmms_object_cmd_arg_t arg;
+	xmmsv_t *args = xmmsv_new_list ();
+	xmmsv_t *rel = xmmsv_new_int (rel_pos);
+
+	xmms_object_cmd_arg_init (&arg);
+	xmmsv_list_append (args, rel);
+	arg.args = args;
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->playlist_object),
+	                      XMMS_IPC_CMD_SET_POS_REL, &arg);
+	xmmsv_unref (arg.args);
+}
+
+static void JNICALL
+playback_next (JNIEnv *env, jobject thiz)
+{
+	playlist_set_pos_rel (1);
+	playback_tickle ();
+}
+
+static void JNICALL
+playback_previous (JNIEnv *env, jobject thiz)
+{
+	playlist_set_pos_rel (-1);
+	playback_tickle ();
+}
+
+static void JNICALL
 check_path (JNIEnv *env, jobject thiz, jstring path)
 {
 }
@@ -413,7 +470,7 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	xmms_object_cmd_call (XMMS_OBJECT (mainobj->colldag_object),
 	                      XMMS_IPC_CMD_QUERY, &arg);
 
-	(*env)->PushLocalFrame (env, 2);
+	(*env)->PushLocalFrame (env, 3);
 
 	artist = dict_get_jstring (env, arg.retval, "artist");
 	title = dict_get_jstring (env, arg.retval, "title");

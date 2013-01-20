@@ -1,6 +1,5 @@
 package org.xmms2.server;
 
-import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -10,8 +9,8 @@ import android.content.IntentFilter;
 import android.content.res.AssetManager;
 import android.media.AudioManager;
 import android.os.*;
-import org.xmms2.server.api11.NotificationFactoryLevel11;
-import org.xmms2.server.api8.NotificationFactoryLevel8;
+import android.support.v4.app.NotificationCompat;
+import android.widget.RemoteViews;
 
 import java.io.*;
 import java.net.URLDecoder;
@@ -29,11 +28,12 @@ public class Server extends Service
 {
     public static final int ONGOING_NOTIFICATION = 1;
     public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
-    private NotificationFactory notificationFactory;
+    private static final String ACTION_TOGGLE_PLAYBACK = "org.xmms2.server.action.TOGGLE_PLAYBACK";
+    private static final String ACTION_NEXT = "org.xmms2.server.action.NEXT";
+    private static final String ACTION_STOP_PLAYBACK = "org.xmms2.server.action.STOP_PLAYBACK";
     private Thread serverThread;
     private String pluginPath;
     private boolean running;
-    private String nowPlaying;
     private int oldStatus;
     private int status;
     private static boolean storageAvailable;
@@ -52,6 +52,29 @@ public class Server extends Service
     private boolean ducked;
 
     private final Queue<Messenger> queue = new LinkedList<Messenger>();
+    private String url;
+    private String title;
+    private String artist;
+    private PendingIntent clientStartIntent;
+    private RemoteViews notificationView;
+    private final BroadcastReceiver notificationActionReceiver = new BroadcastReceiver()
+    {
+        @Override
+        public void onReceive(Context context, Intent intent)
+        {
+            if (ACTION_TOGGLE_PLAYBACK.equals(intent.getAction())) {
+                if (status == 1) {
+                    pause();
+                } else if (status == 2) {
+                    play();
+                }
+            } else if (ACTION_STOP_PLAYBACK.equals(intent.getAction())) {
+                stop();
+            } else if (ACTION_NEXT.equals(intent.getAction())) {
+                next();
+            }
+        }
+    };
 
     class MessageHandler extends Handler
     {
@@ -159,6 +182,9 @@ public class Server extends Service
 
     private native void play();
     private native void pause();
+    private native void stop();
+    private native void next();
+    private native void previous();
 
     private native void start();
     private native void quit();
@@ -170,13 +196,26 @@ public class Server extends Service
         Intent intent = new Intent(ACTION_START_CLIENT);
         intent.putExtra("address", "tcp://localhost:9667");
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
+        clientStartIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
 
-        if (Build.VERSION.SDK_INT >= 11) {
-            notificationFactory = new NotificationFactoryLevel11(getApplicationContext(), pendingIntent);
-        } else { // min SDK version 8 in manifest
-            notificationFactory = new NotificationFactoryLevel8(getApplicationContext(), pendingIntent);
-        }
+        notificationView = new RemoteViews(getPackageName(), R.layout.notification);
+        Intent toggle = new Intent(ACTION_TOGGLE_PLAYBACK);
+        notificationView.setOnClickPendingIntent(R.id.toggle,
+                                                 PendingIntent.getBroadcast(getApplicationContext(), 0, toggle, 0));
+
+        Intent next = new Intent(ACTION_NEXT);
+        notificationView.setOnClickPendingIntent(R.id.next,
+                                                 PendingIntent.getBroadcast(getApplicationContext(), 0, next, 0));
+
+        Intent stop = new Intent(ACTION_STOP_PLAYBACK);
+        notificationView.setOnClickPendingIntent(R.id.close,
+                                                 PendingIntent.getBroadcast(getApplicationContext(), 0, stop, 0));
+
+        IntentFilter notificationActionFilter = new IntentFilter();
+        notificationActionFilter.addAction(ACTION_TOGGLE_PLAYBACK);
+        notificationActionFilter.addAction(ACTION_NEXT);
+        notificationActionFilter.addAction(ACTION_STOP_PLAYBACK);
+        registerReceiver(notificationActionReceiver, notificationActionFilter);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
@@ -265,16 +304,17 @@ public class Server extends Service
     @Override
     public void onDestroy()
     {
+        stopForeground(true);
+        mediaObserver.stopWatching();
+        unregisterReceiver(notificationActionReceiver);
+        unregisterReceiver(storageStateReceiver);
+        unregisterReceiver(headsetReceiver);
         if (running) {
             quit();
             try {
                 serverThread.join();
             } catch (InterruptedException ignored) {}
         }
-        stopForeground(true);
-        mediaObserver.stopWatching();
-        unregisterReceiver(storageStateReceiver);
-        unregisterReceiver(headsetReceiver);
     }
 
     // Should probably use Context.getFilesDir()
@@ -290,18 +330,13 @@ public class Server extends Service
 
     private void setCurrentlyPlayingInfo(String url, String artist, String title)
     {
-        if (artist == null && title == null) {
-            try {
-                url = new File(URLDecoder.decode(url, "UTF-8")).getName();
-            } catch (UnsupportedEncodingException ignored) {}
-            nowPlaying = url;
-        } else if (artist == null) {
-            nowPlaying = title;
-        } else if (title == null) {
-            nowPlaying = artist;
-        } else {
-            nowPlaying = String.format("%s - %s", artist, title);
+        try {
+            this.url = new File(URLDecoder.decode(url, "UTF-8")).getName();
+        } catch (UnsupportedEncodingException e) {
+            this.url = url;
         }
+        this.title = title;
+        this.artist = artist;
         updateNotification();
     }
 
@@ -315,14 +350,39 @@ public class Server extends Service
         if (status == 0) {
             stopForeground(true);
         } else {
+            notificationView.setImageViewResource(R.id.toggle, status == 1 ? R.drawable.pause : R.drawable.play);
             updateNotification();
         }
     }
 
     private void updateNotification()
     {
-        Notification note = notificationFactory.getNotification("XMMS2", nowPlaying, nowPlaying, stringStatus(status));
-        startForeground(ONGOING_NOTIFICATION, note);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+        builder.setContentIntent(clientStartIntent);
+        builder.setContent(notificationView);
+        builder.setContentTitle(title != null ? title : url);
+        notificationView.setTextViewText(R.id.title, title != null ? title : url);
+        builder.setContentText(artist);
+        notificationView.setTextViewText(R.id.artist, artist != null ? artist : "");
+        builder.setContentInfo(stringStatus(status));
+        builder.setTicker(createTicker());
+        builder.setOngoing(true);
+        builder.setSound(null);
+        builder.setSmallIcon(R.drawable.notification);
+
+        startForeground(ONGOING_NOTIFICATION, builder.build());
+    }
+
+    private String createTicker()
+    {
+        if (artist == null && title == null) {
+            return url;
+        } else if (artist == null) {
+            return title;
+        } else if (title == null) {
+            return artist;
+        }
+        return String.format("%s - %s", artist, title);
     }
 
     private String stringStatus(int status)

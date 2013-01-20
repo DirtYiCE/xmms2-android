@@ -10,7 +10,7 @@
  -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="org.xmms2.server"
-          android:versionCode="0810003"
+          android:versionCode="0820005"
           android:versionName="pre-0.9-android"
           android:installLocation="auto">
     <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="15"/>
