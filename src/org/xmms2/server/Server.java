@@ -193,6 +193,7 @@ public class Server extends Service
 
     private ComponentName mediaButtonEventHandler;
     private RemoteControlClient remoteControlClient;
+    private Bitmap logo;
 
     @Override
     public void onCreate()
@@ -272,6 +273,8 @@ public class Server extends Service
                                                      RemoteControlClient.FLAG_KEY_MEDIA_STOP);
         audioManager.registerMediaButtonEventReceiver(mediaButtonEventHandler);
         audioManager.registerRemoteControlClient(remoteControlClient);
+        logo = BitmapFactory.decodeResource(getResources(), R.drawable.logo);
+        remoteControlClient.editMetadata(true).putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, logo).apply();
     }
 
     private static void copyFile(InputStream input, File output, long length) throws IOException
@@ -359,10 +362,8 @@ public class Server extends Service
         this.title = title;
         this.artist = artist;
         updateNotification();
-        Bitmap bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.logo);
-        remoteControlClient.editMetadata(true).putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, artist)
-                                              .putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, bitmap)
-                                              .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, title).apply();
+        remoteControlClient.editMetadata(false).putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, artist)
+                                               .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, title).apply();
     }
 
     private void updateStatus(int status)
