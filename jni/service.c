@@ -75,6 +75,8 @@ typedef struct {
 	jmethodID currently_playing;
 	jmethodID plugin_path_get;
 	jmethodID server_ready;
+
+	jobject status_handler;
 	jmethodID update_status;
 } xmms_main_java_cache_t;
 
@@ -388,7 +390,9 @@ xmms_main_destroy (xmms_object_t *object)
 	xmms_log_shutdown ();
 
 	(*env)->DeleteGlobalRef (env, server_object);
+	(*env)->DeleteGlobalRef (env, mainobj->java_cache->status_handler);
 	(*env)->DeleteGlobalRef (env, mainobj->java_cache->server_class);
+	g_free (mainobj->java_cache);
 	xmmsv_unref (mainobj->coll_query_args);
 }
 
@@ -458,12 +462,13 @@ status_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	JNIEnv *env = get_env ();
 	int32_t status;
 	xmms_main_t *m = (xmms_main_t *) userdata;
+	xmms_main_java_cache_t *cache = m->java_cache;
 
 	if (!xmmsv_get_int (data, &status)) {
 		return;
 	}
 
-	(*env)->CallVoidMethod (env, server_object, m->java_cache->update_status, status);
+	(*env)->CallVoidMethod (env, cache->status_handler, cache->update_status, status);
 }
 
 static void
@@ -511,6 +516,8 @@ create_java_cache (JNIEnv *env, jobject thiz)
 {
 	xmms_main_java_cache_t *cache;
 	jclass clazz = (*env)->GetObjectClass (env, thiz);
+	jfieldID handler_id = (*env)->GetFieldID (env, clazz, "statusHandler",
+	                                          "Lorg/xmms2/server/StatusHandler;");
 	g_return_val_if_fail (clazz, NULL);
 
 	cache = g_new0 (xmms_main_java_cache_t, 1);
@@ -524,6 +531,9 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	cache->currently_playing = (*env)->GetMethodID (env, clazz,
 	                                                "setCurrentlyPlayingInfo",
 	                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+
+	cache->status_handler = (*env)->NewGlobalRef (env, (*env)->GetObjectField (env, thiz, handler_id));
+	clazz = (*env)->GetObjectClass (env, cache->status_handler);
 	cache->update_status = (*env)->GetMethodID (env, clazz, "updateStatus", "(I)V");
 
 	return cache;

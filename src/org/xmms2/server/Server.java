@@ -25,7 +25,7 @@ import java.util.Queue;
 /**
  * @author Eclipser
  */
-public class Server extends Service
+public class Server extends Service implements PlaybackStatusListener
 {
     public static final int ONGOING_NOTIFICATION = 1;
     public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
@@ -35,8 +35,6 @@ public class Server extends Service
     private Thread serverThread;
     private String pluginPath;
     private boolean running;
-    private int oldStatus;
-    private int status;
     private static boolean storageAvailable;
     private BroadcastReceiver storageStateReceiver = new BroadcastReceiver() {
         @Override
@@ -46,7 +44,6 @@ public class Server extends Service
         }
     };
     private MediaObserver mediaObserver;
-    private PlaybackStatusListener playbackStatusListener;
     private boolean focusLost = false;
     private boolean headset = false;
     private AudioManager audioManager;
@@ -64,9 +61,9 @@ public class Server extends Service
         public void onReceive(Context context, Intent intent)
         {
             if (ACTION_TOGGLE_PLAYBACK.equals(intent.getAction())) {
-                if (status == 1) {
+                if (statusHandler.getStatus() == PlaybackStatus.PLAYING) {
                     pause();
-                } else if (status == 2) {
+                } else {
                     play();
                 }
             } else if (ACTION_STOP_PLAYBACK.equals(intent.getAction())) {
@@ -76,6 +73,20 @@ public class Server extends Service
             }
         }
     };
+    private StatusHandler statusHandler;
+
+    @Override
+    public void playbackStatusChanged(PlaybackStatus newStatus)
+    {
+        if (newStatus == PlaybackStatus.STOPPED) {
+            stopForeground(true);
+            remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_STOPPED);
+        } else {
+            remoteControlClient.setPlaybackState(newStatus == PlaybackStatus.PLAYING ? RemoteControlClient.PLAYSTATE_PLAYING : RemoteControlClient.PLAYSTATE_PAUSED);
+            notificationView.setImageViewResource(R.id.toggle, newStatus == PlaybackStatus.PLAYING ? R.drawable.pause : R.drawable.play);
+            updateNotification();
+        }
+    }
 
     class MessageHandler extends Handler
     {
@@ -138,22 +149,22 @@ public class Server extends Service
         {
             if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
                 if (ducked) {
-                    playbackStatusListener.adjustVolume(1.0f, 1.0f);
+//                    output.adjustVolume(1.0f, 1.0f);
                     ducked = false;
                 }
 
-                if (!audioManager.isSpeakerphoneOn() && headset && focusLost && oldStatus == 1) {
+                if (!audioManager.isSpeakerphoneOn() && headset && focusLost && statusHandler.getOldStatus() == PlaybackStatus.PLAYING) {
                     play();
                 }
                 focusLost = false;
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
                 focusLost = true;
-                if (status == 1) {
+                if (statusHandler.getStatus() == PlaybackStatus.PLAYING) {
                     pause();
                 }
             } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
                 ducked = true;
-                playbackStatusListener.adjustVolume(0.1f, 0.1f);
+//                output.adjustVolume(0.1f, 0.1f);
             }
         }
     };
@@ -167,13 +178,13 @@ public class Server extends Service
                 return;
             }
             if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
-                if (status == 1) {
+                if (statusHandler.getStatus() == PlaybackStatus.PLAYING) {
                     pause();
                 }
                 headset = false;
             } else if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) &&
                        intent.getExtras().getInt("state") == 1) {
-                if (!focusLost && oldStatus == 1) {
+                if (!focusLost && statusHandler.getOldStatus() == PlaybackStatus.PLAYING) {
                     play();
                 }
                 headset = true;
@@ -275,6 +286,9 @@ public class Server extends Service
         audioManager.registerRemoteControlClient(remoteControlClient);
         logo = BitmapFactory.decodeResource(getResources(), R.drawable.logo);
         remoteControlClient.editMetadata(true).putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, logo).apply();
+
+        statusHandler = new StatusHandler();
+        statusHandler.registerPlaybackStatusListener(this);
     }
 
     private static void copyFile(InputStream input, File output, long length) throws IOException
@@ -366,23 +380,6 @@ public class Server extends Service
                                                .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, title).apply();
     }
 
-    private void updateStatus(int status)
-    {
-        this.oldStatus = this.status;
-        this.status = status;
-        if (playbackStatusListener != null) {
-            playbackStatusListener.playbackStatusChanged(status);
-        }
-        if (status == 0) {
-            stopForeground(true);
-            remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_STOPPED);
-        } else {
-            remoteControlClient.setPlaybackState(status == 1 ? RemoteControlClient.PLAYSTATE_PLAYING : RemoteControlClient.PLAYSTATE_PAUSED);
-            notificationView.setImageViewResource(R.id.toggle, status == 1 ? R.drawable.pause : R.drawable.play);
-            updateNotification();
-        }
-    }
-
     private void updateNotification()
     {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
@@ -392,7 +389,7 @@ public class Server extends Service
         notificationView.setTextViewText(R.id.title, title != null ? title : url);
         builder.setContentText(artist);
         notificationView.setTextViewText(R.id.artist, artist != null ? artist : "");
-        builder.setContentInfo(stringStatus(status));
+        builder.setContentInfo(statusHandler.getStatus().getLiteralString(getResources()));
         builder.setTicker(createTicker());
         builder.setOngoing(true);
         builder.setSound(null);
@@ -413,20 +410,6 @@ public class Server extends Service
         return String.format("%s - %s", artist, title);
     }
 
-    private String stringStatus(int status)
-    {
-        switch (status) {
-            case 0:
-                return "Stopped";
-            case 1:
-                return "Playing";
-            case 2:
-                return "Paused";
-            default:
-                return "Unknown";
-        }
-    }
-
     public static void updateExternalStorageState()
     {
         String state = Environment.getExternalStorageState();
@@ -442,7 +425,7 @@ public class Server extends Service
 
     public void registerPlaybackListener(PlaybackStatusListener playbackStatusListener)
     {
-        this.playbackStatusListener = playbackStatusListener;
+        statusHandler.registerPlaybackStatusListener(playbackStatusListener);
     }
 
     public AudioManager.OnAudioFocusChangeListener getAudioFocusChangeListener()

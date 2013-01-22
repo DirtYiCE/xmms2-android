@@ -4,6 +4,7 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import org.xmms2.server.PlaybackStatus;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
@@ -179,7 +180,6 @@ public class Output implements PlaybackStatusListener, Runnable
         return true;
     }
 
-    @Override
     public void adjustVolume(float left, float right)
     {
         if (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
@@ -190,9 +190,11 @@ public class Output implements PlaybackStatusListener, Runnable
     // Because the server doesn't tell "non-status API" output plugin if it's a pause, we'll listen to this here
     // and stop the audiotrack in case of pause.
     @Override
-    public void playbackStatusChanged(int newStatus)
+    public void playbackStatusChanged(PlaybackStatus newStatus)
     {
-        if (newStatus == 2 && audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && playing) {
+        if (newStatus == PlaybackStatus.PAUSED && audioTrack != null &&
+            audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && playing) {
+
             paused.set(true);
             buffers.drainTo(pausedBuffers);
         }

@@ -3,4 +3,7 @@
     <string name="no_client">Clients are used to control XMMS2, however it seems that you do not have one installed.
     </string>
     <string name="store">Get one from the Store</string>
+    <string name="stopped">Stopped</string>
+    <string name="playing">Playing</string>
+    <string name="paused">Paused</string>
 </resources>
