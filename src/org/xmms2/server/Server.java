@@ -1,5 +1,6 @@
 package org.xmms2.server;
 
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.*;
@@ -10,11 +11,11 @@ import android.media.AudioManager;
 import android.media.MediaMetadataRetriever;
 import android.media.RemoteControlClient;
 import android.os.*;
-import android.support.v4.app.NotificationCompat;
-import android.widget.RemoteViews;
 
-import java.io.*;
-import java.net.URLDecoder;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -25,13 +26,10 @@ import java.util.Queue;
 /**
  * @author Eclipser
  */
-public class Server extends Service implements PlaybackStatusListener, MetadataListener
+public class Server extends Service implements PlaybackStatusListener, MetadataListener, NotificationUpdater
 {
     public static final int ONGOING_NOTIFICATION = 1;
     public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
-    private static final String ACTION_TOGGLE_PLAYBACK = "org.xmms2.server.action.TOGGLE_PLAYBACK";
-    private static final String ACTION_NEXT = "org.xmms2.server.action.NEXT";
-    private static final String ACTION_STOP_PLAYBACK = "org.xmms2.server.action.STOP_PLAYBACK";
     private Thread serverThread;
     private String pluginPath;
     private boolean running;
@@ -50,49 +48,38 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
     private boolean ducked;
 
     private final Queue<Messenger> queue = new LinkedList<Messenger>();
-    private PendingIntent clientStartIntent;
-    private RemoteViews notificationView;
-    private final BroadcastReceiver notificationActionReceiver = new BroadcastReceiver()
-    {
-        @Override
-        public void onReceive(Context context, Intent intent)
-        {
-            if (ACTION_TOGGLE_PLAYBACK.equals(intent.getAction())) {
-                if (statusHandler.getStatus() == PlaybackStatus.PLAYING) {
-                    pause();
-                } else {
-                    play();
-                }
-            } else if (ACTION_STOP_PLAYBACK.equals(intent.getAction())) {
-                stop();
-            } else if (ACTION_NEXT.equals(intent.getAction())) {
-                next();
-            }
-        }
-    };
     private StatusHandler statusHandler;
     private MetadataHandler metadataHandler;
+    private NotificationHandler notificationHandler;
 
     @Override
     public void playbackStatusChanged(PlaybackStatus newStatus)
     {
         if (newStatus == PlaybackStatus.STOPPED) {
-            stopForeground(true);
             remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_STOPPED);
         } else {
             remoteControlClient.setPlaybackState(newStatus == PlaybackStatus.PLAYING ? RemoteControlClient.PLAYSTATE_PLAYING : RemoteControlClient.PLAYSTATE_PAUSED);
-            notificationView.setImageViewResource(R.id.toggle, newStatus == PlaybackStatus.PLAYING ? R.drawable.pause : R.drawable.play);
-            updateNotification();
         }
     }
 
     @Override
     public void metadataChanged(MetadataHandler metadataHandler)
     {
-        updateNotification();
         remoteControlClient.editMetadata(false)
                            .putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, metadataHandler.getArtist())
                            .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, metadataHandler.getTitle()).apply();
+    }
+
+    @Override
+    public void updateNotification(Notification notification)
+    {
+        startForeground(ONGOING_NOTIFICATION, notification);
+    }
+
+    @Override
+    public void removeNotification()
+    {
+        stopForeground(true);
     }
 
     class MessageHandler extends Handler
@@ -217,29 +204,6 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
     public void onCreate()
     {
         super.onCreate();
-        Intent intent = new Intent(ACTION_START_CLIENT);
-        intent.putExtra("address", "tcp://localhost:9667");
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        clientStartIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
-
-        notificationView = new RemoteViews(getPackageName(), R.layout.notification);
-        Intent toggle = new Intent(ACTION_TOGGLE_PLAYBACK);
-        notificationView.setOnClickPendingIntent(R.id.toggle,
-                                                 PendingIntent.getBroadcast(getApplicationContext(), 0, toggle, 0));
-
-        Intent next = new Intent(ACTION_NEXT);
-        notificationView.setOnClickPendingIntent(R.id.next,
-                                                 PendingIntent.getBroadcast(getApplicationContext(), 0, next, 0));
-
-        Intent stop = new Intent(ACTION_STOP_PLAYBACK);
-        notificationView.setOnClickPendingIntent(R.id.close,
-                                                 PendingIntent.getBroadcast(getApplicationContext(), 0, stop, 0));
-
-        IntentFilter notificationActionFilter = new IntentFilter();
-        notificationActionFilter.addAction(ACTION_TOGGLE_PLAYBACK);
-        notificationActionFilter.addAction(ACTION_NEXT);
-        notificationActionFilter.addAction(ACTION_STOP_PLAYBACK);
-        registerReceiver(notificationActionReceiver, notificationActionFilter);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
@@ -299,6 +263,10 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
 
         metadataHandler = new MetadataHandler();
         metadataHandler.registerMetadataListener(this);
+
+        notificationHandler = new NotificationHandler(this, this);
+        statusHandler.registerPlaybackStatusListener(notificationHandler);
+        metadataHandler.registerMetadataListener(notificationHandler);
     }
 
     private static void copyFile(InputStream input, File output, long length) throws IOException
@@ -354,7 +322,7 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
         mediaObserver.stopWatching();
         audioManager.unregisterMediaButtonEventReceiver(mediaButtonEventHandler);
         audioManager.unregisterRemoteControlClient(remoteControlClient);
-        unregisterReceiver(notificationActionReceiver);
+        notificationHandler.unregisterReceiver();
         unregisterReceiver(storageStateReceiver);
         unregisterReceiver(headsetReceiver);
         if (running) {
@@ -374,24 +342,6 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
     private String getPluginPath()
     {
         return pluginPath;
-    }
-
-    private void updateNotification()
-    {
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-        builder.setContentIntent(clientStartIntent);
-        builder.setContent(notificationView);
-        builder.setContentTitle(metadataHandler.getTitle());
-        notificationView.setTextViewText(R.id.title, metadataHandler.getTitle());
-        builder.setContentText(metadataHandler.getArtist());
-        notificationView.setTextViewText(R.id.artist, metadataHandler.getArtist());
-        builder.setContentInfo(statusHandler.getStatus().getLiteralString(getResources()));
-        builder.setTicker(metadataHandler.getTicker());
-        builder.setOngoing(true);
-        builder.setSound(null);
-        builder.setSmallIcon(R.drawable.notification);
-
-        startForeground(ONGOING_NOTIFICATION, builder.build());
     }
 
     public static void updateExternalStorageState()
