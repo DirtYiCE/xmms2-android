@@ -25,7 +25,7 @@ import java.util.Queue;
 /**
  * @author Eclipser
  */
-public class Server extends Service implements PlaybackStatusListener
+public class Server extends Service implements PlaybackStatusListener, MetadataListener
 {
     public static final int ONGOING_NOTIFICATION = 1;
     public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
@@ -50,9 +50,6 @@ public class Server extends Service implements PlaybackStatusListener
     private boolean ducked;
 
     private final Queue<Messenger> queue = new LinkedList<Messenger>();
-    private String url;
-    private String title;
-    private String artist;
     private PendingIntent clientStartIntent;
     private RemoteViews notificationView;
     private final BroadcastReceiver notificationActionReceiver = new BroadcastReceiver()
@@ -74,6 +71,7 @@ public class Server extends Service implements PlaybackStatusListener
         }
     };
     private StatusHandler statusHandler;
+    private MetadataHandler metadataHandler;
 
     @Override
     public void playbackStatusChanged(PlaybackStatus newStatus)
@@ -86,6 +84,15 @@ public class Server extends Service implements PlaybackStatusListener
             notificationView.setImageViewResource(R.id.toggle, newStatus == PlaybackStatus.PLAYING ? R.drawable.pause : R.drawable.play);
             updateNotification();
         }
+    }
+
+    @Override
+    public void metadataChanged(MetadataHandler metadataHandler)
+    {
+        updateNotification();
+        remoteControlClient.editMetadata(false)
+                           .putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, metadataHandler.getArtist())
+                           .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, metadataHandler.getTitle()).apply();
     }
 
     class MessageHandler extends Handler
@@ -289,6 +296,9 @@ public class Server extends Service implements PlaybackStatusListener
 
         statusHandler = new StatusHandler();
         statusHandler.registerPlaybackStatusListener(this);
+
+        metadataHandler = new MetadataHandler();
+        metadataHandler.registerMetadataListener(this);
     }
 
     private static void copyFile(InputStream input, File output, long length) throws IOException
@@ -366,48 +376,22 @@ public class Server extends Service implements PlaybackStatusListener
         return pluginPath;
     }
 
-    private void setCurrentlyPlayingInfo(String url, String artist, String title)
-    {
-        try {
-            this.url = new File(URLDecoder.decode(url, "UTF-8")).getName();
-        } catch (UnsupportedEncodingException e) {
-            this.url = url;
-        }
-        this.title = title;
-        this.artist = artist;
-        updateNotification();
-        remoteControlClient.editMetadata(false).putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, artist)
-                                               .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, title).apply();
-    }
-
     private void updateNotification()
     {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
         builder.setContentIntent(clientStartIntent);
         builder.setContent(notificationView);
-        builder.setContentTitle(title != null ? title : url);
-        notificationView.setTextViewText(R.id.title, title != null ? title : url);
-        builder.setContentText(artist);
-        notificationView.setTextViewText(R.id.artist, artist != null ? artist : "");
+        builder.setContentTitle(metadataHandler.getTitle());
+        notificationView.setTextViewText(R.id.title, metadataHandler.getTitle());
+        builder.setContentText(metadataHandler.getArtist());
+        notificationView.setTextViewText(R.id.artist, metadataHandler.getArtist());
         builder.setContentInfo(statusHandler.getStatus().getLiteralString(getResources()));
-        builder.setTicker(createTicker());
+        builder.setTicker(metadataHandler.getTicker());
         builder.setOngoing(true);
         builder.setSound(null);
         builder.setSmallIcon(R.drawable.notification);
 
         startForeground(ONGOING_NOTIFICATION, builder.build());
-    }
-
-    private String createTicker()
-    {
-        if (artist == null && title == null) {
-            return url;
-        } else if (artist == null) {
-            return title;
-        } else if (title == null) {
-            return artist;
-        }
-        return String.format("%s - %s", artist, title);
     }
 
     public static void updateExternalStorageState()

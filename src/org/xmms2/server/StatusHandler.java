@@ -21,9 +21,6 @@ public class StatusHandler
         for (PlaybackStatusListener playbackStatusListener : playbackStatusListeners) {
             playbackStatusListener.playbackStatusChanged(this.status);
         }
-
-        /*
-       */
     }
 
     public void registerPlaybackStatusListener(PlaybackStatusListener listener) {

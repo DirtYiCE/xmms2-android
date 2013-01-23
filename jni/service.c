@@ -72,12 +72,14 @@ jobject server_object;
 
 typedef struct {
 	jclass server_class;
-	jmethodID currently_playing;
 	jmethodID plugin_path_get;
 	jmethodID server_ready;
 
 	jobject status_handler;
 	jmethodID update_status;
+
+	jobject metadata_handler;
+	jmethodID currently_playing;
 } xmms_main_java_cache_t;
 
 /**
@@ -391,6 +393,7 @@ xmms_main_destroy (xmms_object_t *object)
 
 	(*env)->DeleteGlobalRef (env, server_object);
 	(*env)->DeleteGlobalRef (env, mainobj->java_cache->status_handler);
+	(*env)->DeleteGlobalRef (env, mainobj->java_cache->metadata_handler);
 	(*env)->DeleteGlobalRef (env, mainobj->java_cache->server_class);
 	g_free (mainobj->java_cache);
 	xmmsv_unref (mainobj->coll_query_args);
@@ -483,6 +486,7 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	xmmsv_coll_t *coll;
 	xmms_object_cmd_arg_t arg;
 	xmms_main_t *m = (xmms_main_t *) userdata;
+	xmms_main_java_cache_t *cache = m->java_cache;
 
 	if (!xmmsv_get_int (data, &(id[0]))) {
 		return;
@@ -503,7 +507,7 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	title = dict_get_jstring (env, arg.retval, "title");
 	url = dict_get_jstring (env, arg.retval, "url");
 
-	(*env)->CallVoidMethod (env, server_object, m->java_cache->currently_playing,
+	(*env)->CallVoidMethod (env, cache->metadata_handler, cache->currently_playing,
 	                        url, artist, title);
 
 	(*env)->PopLocalFrame (env, NULL);
@@ -518,6 +522,8 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	jclass clazz = (*env)->GetObjectClass (env, thiz);
 	jfieldID handler_id = (*env)->GetFieldID (env, clazz, "statusHandler",
 	                                          "Lorg/xmms2/server/StatusHandler;");
+	jfieldID metadata_id = (*env)->GetFieldID (env, clazz, "metadataHandler",
+	                                           "Lorg/xmms2/server/MetadataHandler;");
 	g_return_val_if_fail (clazz, NULL);
 
 	cache = g_new0 (xmms_main_java_cache_t, 1);
@@ -528,13 +534,16 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	cache->plugin_path_get = (*env)->GetMethodID (env, clazz, "getPluginPath",
 	                                              "()Ljava/lang/String;");
 	cache->server_ready = (*env)->GetMethodID (env, clazz, "serverReady", "()V");
-	cache->currently_playing = (*env)->GetMethodID (env, clazz,
-	                                                "setCurrentlyPlayingInfo",
-	                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 
 	cache->status_handler = (*env)->NewGlobalRef (env, (*env)->GetObjectField (env, thiz, handler_id));
 	clazz = (*env)->GetObjectClass (env, cache->status_handler);
 	cache->update_status = (*env)->GetMethodID (env, clazz, "updateStatus", "(I)V");
+
+	cache->metadata_handler = (*env)->NewGlobalRef (env, (*env)->GetObjectField (env, thiz, metadata_id));
+	clazz = (*env)->GetObjectClass (env, cache->metadata_handler);
+	cache->currently_playing = (*env)->GetMethodID (env, clazz,
+	                                                "setCurrentlyPlayingInfo",
+	                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 
 	return cache;
 }
