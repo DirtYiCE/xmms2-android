@@ -1,15 +1,10 @@
 package org.xmms2.server;
 
 import android.app.Notification;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.*;
 import android.content.res.AssetManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.AudioManager;
-import android.media.MediaMetadataRetriever;
-import android.media.RemoteControlClient;
 import android.os.*;
 
 import java.io.File;
@@ -26,7 +21,7 @@ import java.util.Queue;
 /**
  * @author Eclipser
  */
-public class Server extends Service implements PlaybackStatusListener, MetadataListener, NotificationUpdater
+public class Server extends Service implements NotificationUpdater
 {
     public static final int ONGOING_NOTIFICATION = 1;
     public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
@@ -48,27 +43,14 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
     private boolean ducked;
 
     private final Queue<Messenger> queue = new LinkedList<Messenger>();
+
+    // these handlers are used from native side
     private StatusHandler statusHandler;
+    @SuppressWarnings("FieldCanBeLocal")
     private MetadataHandler metadataHandler;
+
     private NotificationHandler notificationHandler;
-
-    @Override
-    public void playbackStatusChanged(PlaybackStatus newStatus)
-    {
-        if (newStatus == PlaybackStatus.STOPPED) {
-            remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_STOPPED);
-        } else {
-            remoteControlClient.setPlaybackState(newStatus == PlaybackStatus.PLAYING ? RemoteControlClient.PLAYSTATE_PLAYING : RemoteControlClient.PLAYSTATE_PAUSED);
-        }
-    }
-
-    @Override
-    public void metadataChanged(MetadataHandler metadataHandler)
-    {
-        remoteControlClient.editMetadata(false)
-                           .putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, metadataHandler.getArtist())
-                           .putString(MediaMetadataRetriever.METADATA_KEY_TITLE, metadataHandler.getTitle()).apply();
-    }
+    private RemoteControl remoteControl = null;
 
     @Override
     public void updateNotification(Notification notification)
@@ -197,8 +179,6 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
     private native void quit();
 
     private ComponentName mediaButtonEventHandler;
-    private RemoteControlClient remoteControlClient;
-    private Bitmap logo;
 
     @Override
     public void onCreate()
@@ -242,31 +222,18 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
         } catch (IOException ignored) {}
 
         mediaButtonEventHandler = new ComponentName(this, MediaButtonEventHandler.class);
-        // build the PendingIntent for the remote control client
-        Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
-        mediaButtonIntent.setComponent(mediaButtonEventHandler);
-        PendingIntent mediaPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, mediaButtonIntent, 0);
-
-        // create and register the remote control client
-        remoteControlClient = new RemoteControlClient(mediaPendingIntent);
-        remoteControlClient.setTransportControlFlags(RemoteControlClient.FLAG_KEY_MEDIA_NEXT |
-                                                     RemoteControlClient.FLAG_KEY_MEDIA_PREVIOUS |
-                                                     RemoteControlClient.FLAG_KEY_MEDIA_PLAY_PAUSE |
-                                                     RemoteControlClient.FLAG_KEY_MEDIA_STOP);
         audioManager.registerMediaButtonEventReceiver(mediaButtonEventHandler);
-        audioManager.registerRemoteControlClient(remoteControlClient);
-        logo = BitmapFactory.decodeResource(getResources(), R.drawable.logo);
-        remoteControlClient.editMetadata(true).putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, logo).apply();
 
         statusHandler = new StatusHandler();
-        statusHandler.registerPlaybackStatusListener(this);
-
         metadataHandler = new MetadataHandler();
-        metadataHandler.registerMetadataListener(this);
 
         notificationHandler = new NotificationHandler(this, this);
         statusHandler.registerPlaybackStatusListener(notificationHandler);
         metadataHandler.registerMetadataListener(notificationHandler);
+
+        remoteControl = new RemoteControl(this, mediaButtonEventHandler);
+        statusHandler.registerPlaybackStatusListener(remoteControl);
+        metadataHandler.registerMetadataListener(remoteControl);
     }
 
     private static void copyFile(InputStream input, File output, long length) throws IOException
@@ -321,8 +288,8 @@ public class Server extends Service implements PlaybackStatusListener, MetadataL
         stopForeground(true);
         mediaObserver.stopWatching();
         audioManager.unregisterMediaButtonEventReceiver(mediaButtonEventHandler);
-        audioManager.unregisterRemoteControlClient(remoteControlClient);
         notificationHandler.unregisterReceiver();
+        remoteControl.unregister();
         unregisterReceiver(storageStateReceiver);
         unregisterReceiver(headsetReceiver);
         if (running) {
