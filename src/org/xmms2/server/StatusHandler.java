@@ -9,13 +9,11 @@ import java.util.Set;
 public class StatusHandler
 {
     private PlaybackStatus status;
-    private PlaybackStatus oldStatus;
 
     private final Set<PlaybackStatusListener> playbackStatusListeners = new HashSet<PlaybackStatusListener>();
 
     private void updateStatus(int status)
     {
-        this.oldStatus = this.status;
         this.status = PlaybackStatus.get(status);
 
         for (PlaybackStatusListener playbackStatusListener : playbackStatusListeners) {
@@ -34,10 +32,5 @@ public class StatusHandler
     public PlaybackStatus getStatus()
     {
         return status;
-    }
-
-    public PlaybackStatus getOldStatus()
-    {
-        return oldStatus;
     }
 }

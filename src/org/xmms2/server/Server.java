@@ -25,6 +25,7 @@ public class Server extends Service implements NotificationUpdater
 {
     public static final int ONGOING_NOTIFICATION = 1;
     public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
+    private HeadsetReceiver headsetReceiver;
     private Thread serverThread;
     private String pluginPath;
     private boolean running;
@@ -37,10 +38,7 @@ public class Server extends Service implements NotificationUpdater
         }
     };
     private MediaObserver mediaObserver;
-    private boolean focusLost = false;
-    private boolean headset = false;
     private AudioManager audioManager;
-    private boolean ducked;
 
     private final Queue<Messenger> queue = new LinkedList<Messenger>();
 
@@ -62,6 +60,16 @@ public class Server extends Service implements NotificationUpdater
     public void removeNotification()
     {
         stopForeground(true);
+    }
+
+    public void registerHeadsetListener(HeadsetListener listener)
+    {
+        headsetReceiver.registerHeadsetListener(listener);
+    }
+
+    public void registerFocusListener(AudioFocusHandler focusHandler)
+    {
+        focusHandler.registerFocusListener(headsetReceiver);
     }
 
     class MessageHandler extends Handler
@@ -118,56 +126,6 @@ public class Server extends Service implements NotificationUpdater
         }
     }
 
-    private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener()
-    {
-        @Override
-        public void onAudioFocusChange(int focusChange)
-        {
-            if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-                if (ducked) {
-//                    output.adjustVolume(1.0f, 1.0f);
-                    ducked = false;
-                }
-
-                if (!audioManager.isSpeakerphoneOn() && headset && focusLost && statusHandler.getOldStatus() == PlaybackStatus.PLAYING) {
-                    play();
-                }
-                focusLost = false;
-            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                focusLost = true;
-                if (statusHandler.getStatus() == PlaybackStatus.PLAYING) {
-                    pause();
-                }
-            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
-                ducked = true;
-//                output.adjustVolume(0.1f, 0.1f);
-            }
-        }
-    };
-
-    private BroadcastReceiver headsetReceiver = new BroadcastReceiver()
-    {
-        @Override
-        public void onReceive(Context context, Intent intent)
-        {
-            if (!running) {
-                return;
-            }
-            if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intent.getAction())) {
-                if (statusHandler.getStatus() == PlaybackStatus.PLAYING) {
-                    pause();
-                }
-                headset = false;
-            } else if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction()) &&
-                       intent.getExtras().getInt("state") == 1) {
-                if (!focusLost && statusHandler.getOldStatus() == PlaybackStatus.PLAYING) {
-                    play();
-                }
-                headset = true;
-            }
-        }
-    };
-
     static native void play();
     static native void pause();
     static native void stop();
@@ -190,11 +148,6 @@ public class Server extends Service implements NotificationUpdater
         filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
         filter.addAction(Intent.ACTION_MEDIA_REMOVED);
         registerReceiver(storageStateReceiver, filter);
-
-        filter = new IntentFilter();
-        filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
-        filter.addAction(Intent.ACTION_HEADSET_PLUG);
-        registerReceiver(headsetReceiver, filter);
 
         mediaObserver = new MediaObserver(Environment.getExternalStorageDirectory().getAbsolutePath());
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
@@ -234,6 +187,14 @@ public class Server extends Service implements NotificationUpdater
         remoteControl = new RemoteControl(this, mediaButtonEventHandler);
         statusHandler.registerPlaybackStatusListener(remoteControl);
         metadataHandler.registerMetadataListener(remoteControl);
+
+        headsetReceiver = new HeadsetReceiver(audioManager.isSpeakerphoneOn() ? HeadsetState.UNPLUGGED : HeadsetState.PLUGGED);
+        statusHandler.registerPlaybackStatusListener(headsetReceiver);
+
+        filter = new IntentFilter();
+        filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+        filter.addAction(Intent.ACTION_HEADSET_PLUG);
+        registerReceiver(headsetReceiver, filter);
     }
 
     private static void copyFile(InputStream input, File output, long length) throws IOException
@@ -327,10 +288,5 @@ public class Server extends Service implements NotificationUpdater
     public void registerPlaybackListener(PlaybackStatusListener playbackStatusListener)
     {
         statusHandler.registerPlaybackStatusListener(playbackStatusListener);
-    }
-
-    public AudioManager.OnAudioFocusChangeListener getAudioFocusChangeListener()
-    {
-        return audioFocusChangeListener;
     }
 }

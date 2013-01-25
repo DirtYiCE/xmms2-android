@@ -4,6 +4,7 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import org.xmms2.server.AudioFocusHandler;
 import org.xmms2.server.PlaybackStatus;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
@@ -23,7 +24,7 @@ public class Output implements PlaybackStatusListener, Runnable
     private AudioTrack audioTrack;
     private int bufferSize;
     private AudioManager audioManager;
-    private final AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
+    private final AudioFocusHandler audioFocusChangeListener;
     private Thread audioThread = null;
     private boolean playing = false;
     private List<byte[]> pausedBuffers = new ArrayList<byte[]>();
@@ -38,8 +39,11 @@ public class Output implements PlaybackStatusListener, Runnable
     public Output(Server server)
     {
         this.audioManager = (AudioManager) server.getSystemService(Context.AUDIO_SERVICE);
-        audioFocusChangeListener = server.getAudioFocusChangeListener();
+        audioFocusChangeListener = new AudioFocusHandler(this);
         server.registerPlaybackListener(this);
+        server.registerPlaybackListener(audioFocusChangeListener);
+        server.registerHeadsetListener(audioFocusChangeListener);
+        server.registerFocusListener(audioFocusChangeListener);
     }
 
     public int getBufferSize()
