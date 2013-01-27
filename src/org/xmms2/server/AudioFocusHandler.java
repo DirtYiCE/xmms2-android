@@ -37,6 +37,7 @@ public class AudioFocusHandler implements AudioManager.OnAudioFocusChangeListene
     }
 
     private PlaybackState playbackState;
+    private PlaybackState playbackStateWhenLostFocus = PlaybackState.STOPPED;
 
     @Override
     public void onAudioFocusChange(int focusChange)
@@ -46,7 +47,8 @@ public class AudioFocusHandler implements AudioManager.OnAudioFocusChangeListene
                 case STOPPED:
                     break;
                 case PAUSED:
-                    if (headsetStateWhenPaused == headsetState || headsetStateWhenPaused == HeadsetState.UNPLUGGED) {
+                    if (playbackStateWhenLostFocus == PlaybackState.PLAYING &&
+                        headsetStateWhenPaused == headsetState || headsetStateWhenPaused == HeadsetState.UNPLUGGED) {
                         Server.play();
                     }
                     break;
@@ -60,6 +62,7 @@ public class AudioFocusHandler implements AudioManager.OnAudioFocusChangeListene
 
             focusState = AudioFocusState.FOCUSED;
         } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
+            playbackStateWhenLostFocus = playbackState;
             if (playbackState == PlaybackState.PLAYING || playbackState == PlaybackState.DUCKED) {
                 Server.pause();
             }
