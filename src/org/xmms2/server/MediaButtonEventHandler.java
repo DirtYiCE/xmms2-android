@@ -18,16 +18,12 @@ public class MediaButtonEventHandler extends BroadcastReceiver
             if (event.getAction() != KeyEvent.ACTION_DOWN) return;
             int keyCode = event.getKeyCode();
             if (KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE == keyCode) {
-                Log.d("FOO", "playpause");
                 Server.toggle();
             } else if (KeyEvent.KEYCODE_MEDIA_STOP == keyCode) {
-                Log.d("FOO", "stop");
                 Server.stop();
             } else if (KeyEvent.KEYCODE_MEDIA_NEXT == keyCode) {
-                Log.d("FOO", "next");
                 Server.next();
             } else if (KeyEvent.KEYCODE_MEDIA_PREVIOUS == keyCode) {
-                Log.d("FOO", "prev");
                 Server.previous();
             }
         }

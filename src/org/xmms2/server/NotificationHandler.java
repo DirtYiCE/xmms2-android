@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
 import android.support.v4.app.NotificationCompat;
 import android.widget.RemoteViews;
 
@@ -84,6 +85,13 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
         builder.setContentText(metadataHandler.getArtist());
         notificationView.setTextViewText(R.id.artist, metadataHandler.getArtist());
         builder.setTicker(metadataHandler.getTicker());
+        Bitmap coverArt = metadataHandler.getCoverArt();
+        builder.setLargeIcon(coverArt);
+        if (coverArt != null) {
+            notificationView.setImageViewBitmap(R.id.icon, coverArt);
+        } else {
+            notificationView.setImageViewResource(R.id.icon, R.drawable.notification);
+        }
 
         updater.updateNotification(builder.build());
     }

@@ -50,6 +50,7 @@ static void JNICALL playback_stop (JNIEnv *env, jobject thiz);
 static void JNICALL playback_toggle (JNIEnv *env, jobject thiz);
 static void JNICALL playback_next (JNIEnv *env, jobject thiz);
 static void JNICALL playback_previous (JNIEnv *env, jobject thiz);
+static jbyteArray JNICALL get_bindata (JNIEnv *env, jobject thiz, jstring key);
 static void JNICALL check_path (JNIEnv *env, jobject thiz, jstring path);
 
 static JNINativeMethod methods[] = {
@@ -61,6 +62,10 @@ static JNINativeMethod methods[] = {
 	{"toggle", "()V", playback_toggle},
 	{"next", "()V", playback_next},
 	{"previous", "()V", playback_previous},
+};
+
+static JNINativeMethod cache_methods[] = {
+	{"getBinData", "(Ljava/lang/String;)[B", get_bindata}
 };
 
 static JNINativeMethod observer_methods[] = {
@@ -220,6 +225,10 @@ JNI_OnLoad (JavaVM *vm, void *reserved)
 	(*env)->RegisterNatives (env, clazz, observer_methods,
 	                         sizeof(observer_methods)/sizeof(observer_methods[0]));
 
+	clazz = (*env)->FindClass (env, "org/xmms2/server/CoverArtSource");
+	(*env)->RegisterNatives (env, clazz, cache_methods,
+	                         sizeof(cache_methods)/sizeof(cache_methods[0]));
+
 	global_jvm = vm;
 
 	return JNI_VERSION_1_6;
@@ -343,6 +352,38 @@ playback_previous (JNIEnv *env, jobject thiz)
 {
 	playlist_set_pos_rel (-1);
 	playback_tickle ();
+}
+
+static jbyteArray JNICALL
+get_bindata (JNIEnv *env, jobject thiz, jstring key)
+{
+	jbyteArray ret = NULL;
+	int len = 0;
+	const char *ckey = (*env)->GetStringUTFChars (env, key, 0);
+
+	xmms_object_cmd_arg_t arg;
+	xmms_object_cmd_arg_init (&arg);
+	arg.args = xmmsv_new_list ();
+
+	xmmsv_list_append_string (arg.args, ckey);
+
+	xmms_object_cmd_call (XMMS_OBJECT (mainobj->bindata_object),
+	                      XMMS_IPC_CMD_GET_DATA, &arg);
+
+	if (!xmms_error_iserror (&arg.error)) {
+		const unsigned char *r;
+		if (xmmsv_get_bin (arg.retval, &r, &len)) {
+			ret = (*env)->NewByteArray (env, len);
+			(*env)->SetByteArrayRegion (env, ret, 0, len, r);
+		}
+	}
+
+	xmmsv_unref (arg.args);
+	xmmsv_unref (arg.retval);
+
+	(*env)->ReleaseStringUTFChars (env, key, ckey);
+
+	return ret;
 }
 
 static void JNICALL
@@ -482,6 +523,7 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	jstring artist;
 	jstring title;
 	jstring url;
+	jstring picture_front = NULL;
 	JNIEnv *env = get_env ();
 	xmmsv_coll_t *coll;
 	xmms_object_cmd_arg_t arg;
@@ -501,14 +543,15 @@ current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	xmms_object_cmd_call (XMMS_OBJECT (mainobj->colldag_object),
 	                      XMMS_IPC_CMD_QUERY, &arg);
 
-	(*env)->PushLocalFrame (env, 3);
+	(*env)->PushLocalFrame (env, 8);
 
 	artist = dict_get_jstring (env, arg.retval, "artist");
 	title = dict_get_jstring (env, arg.retval, "title");
 	url = dict_get_jstring (env, arg.retval, "url");
+	picture_front = dict_get_jstring (env, arg.retval, "picture_front");
 
 	(*env)->CallVoidMethod (env, cache->metadata_handler, cache->currently_playing,
-	                        url, artist, title);
+	                        url, artist, title, picture_front);
 
 	(*env)->PopLocalFrame (env, NULL);
 
@@ -543,7 +586,7 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	clazz = (*env)->GetObjectClass (env, cache->metadata_handler);
 	cache->currently_playing = (*env)->GetMethodID (env, clazz,
 	                                                "setCurrentlyPlayingInfo",
-	                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+	                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
 
 	return cache;
 }
@@ -568,6 +611,7 @@ create_coll_query_args ()
 	xmmsv_list_append_string (a, "artist");
 	xmmsv_list_append_string (a, "title");
 	xmmsv_list_append_string (a, "url");
+	xmmsv_list_append_string (a, "picture_front");
 
 	xmmsv_dict_set (fetch, "fields", a);
 

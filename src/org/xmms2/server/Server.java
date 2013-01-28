@@ -178,7 +178,7 @@ public class Server extends Service implements NotificationUpdater
         audioManager.registerMediaButtonEventReceiver(mediaButtonEventHandler);
 
         statusHandler = new StatusHandler();
-        metadataHandler = new MetadataHandler();
+        metadataHandler = new MetadataHandler(this);
 
         notificationHandler = new NotificationHandler(this, this);
         statusHandler.registerPlaybackStatusListener(notificationHandler);

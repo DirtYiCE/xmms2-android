@@ -1,5 +1,7 @@
 package org.xmms2.server;
 
+import android.content.Context;
+import android.graphics.Bitmap;
 import android.text.TextUtils;
 
 import java.io.File;
@@ -13,14 +15,21 @@ import java.util.Set;
  */
 public class MetadataHandler
 {
+    private final CoverArtSource cache;
 
     private String url;
     private String title;
     private String artist;
+    private String pictureFront;
+
+    public MetadataHandler(Context context)
+    {
+        cache = new CoverArtSource(context, 8 * 1024 * 1024);
+    }
 
     private Set<MetadataListener> metadataListeners = new HashSet<MetadataListener>();
 
-    private void setCurrentlyPlayingInfo(String url, String artist, String title)
+    private void setCurrentlyPlayingInfo(String url, String artist, String title, String pictureFront)
     {
         try {
             this.url = new File(URLDecoder.decode(url, "UTF-8")).getName();
@@ -29,6 +38,7 @@ public class MetadataHandler
         }
         this.title = title;
         this.artist = artist;
+        this.pictureFront = pictureFront;
 
         for (MetadataListener metadataListener : metadataListeners) {
             metadataListener.metadataChanged(this);
@@ -55,6 +65,19 @@ public class MetadataHandler
             return artist;
         }
         return String.format("%s - %s", artist, title);
+    }
+
+    public Bitmap getCoverArt()
+    {
+        if (pictureFront == null) {
+            return null;
+        }
+        Bitmap bitmap = cache.get(pictureFront);
+        if (bitmap == null) {
+            return null;
+        }
+
+        return bitmap.copy(bitmap.getConfig(), false);
     }
 
     public void registerMetadataListener(MetadataListener listener)
