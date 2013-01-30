@@ -16,17 +16,23 @@ public class StatusHandler
     {
         this.status = PlaybackStatus.get(status);
 
-        for (PlaybackStatusListener playbackStatusListener : playbackStatusListeners) {
-            playbackStatusListener.playbackStatusChanged(this.status);
+        synchronized (playbackStatusListeners) {
+            for (PlaybackStatusListener playbackStatusListener : playbackStatusListeners) {
+                playbackStatusListener.playbackStatusChanged(this.status);
+            }
         }
     }
 
     public void registerPlaybackStatusListener(PlaybackStatusListener listener) {
-        playbackStatusListeners.add(listener);
+        synchronized (playbackStatusListeners) {
+            playbackStatusListeners.add(listener);
+        }
     }
 
     public void unregisterPlaybackStatusListener(PlaybackStatusListener listener) {
-        playbackStatusListeners.remove(listener);
+        synchronized (playbackStatusListeners) {
+            playbackStatusListeners.remove(listener);
+        }
     }
 
     public PlaybackStatus getStatus()

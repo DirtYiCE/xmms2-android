@@ -28,6 +28,19 @@ public class AudioFocusHandler implements AudioManager.OnAudioFocusChangeListene
         audioFocusListeners.add(listener);
     }
 
+    public void setFocus(boolean focus)
+    {
+        if (focus) {
+            focusState = AudioFocusState.FOCUSED;
+        } else {
+            focusState = AudioFocusState.UNFOCUSED;
+        }
+
+        for (AudioFocusListener audioFocusListener : audioFocusListeners) {
+            audioFocusListener.audioFocusChanged(focusState);
+        }
+    }
+
     private enum PlaybackState
     {
         STOPPED,
@@ -83,6 +96,7 @@ public class AudioFocusHandler implements AudioManager.OnAudioFocusChangeListene
     @Override
     public void playbackStatusChanged(PlaybackStatus newStatus)
     {
+        output.playbackStatusChanged(newStatus);
         if (playbackState == PlaybackState.DUCKED) {
             output.adjustVolume(1.0f, 1.0f);
         }

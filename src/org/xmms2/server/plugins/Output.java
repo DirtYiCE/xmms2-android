@@ -4,6 +4,7 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.util.Log;
 import org.xmms2.server.AudioFocusHandler;
 import org.xmms2.server.PlaybackStatus;
 import org.xmms2.server.PlaybackStatusListener;
@@ -40,7 +41,6 @@ public class Output implements PlaybackStatusListener, Runnable
     {
         this.audioManager = (AudioManager) server.getSystemService(Context.AUDIO_SERVICE);
         audioFocusChangeListener = new AudioFocusHandler(this);
-        server.registerPlaybackListener(this);
         server.registerPlaybackListener(audioFocusChangeListener);
         server.registerHeadsetListener(audioFocusChangeListener);
         server.registerFocusListener(audioFocusChangeListener);
@@ -56,6 +56,7 @@ public class Output implements PlaybackStatusListener, Runnable
         int ret = audioManager.requestAudioFocus(audioFocusChangeListener,
                                                  AudioManager.STREAM_MUSIC,
                                                  AudioManager.AUDIOFOCUS_GAIN);
+        audioFocusChangeListener.setFocus(ret == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
         return ret == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     }
 
@@ -74,6 +75,7 @@ public class Output implements PlaybackStatusListener, Runnable
             audioThread.interrupt();
         }
         playing = false;
+        free.clear();
         buffers.clear();
         pausedBuffers.clear();
         audioManager.abandonAudioFocus(audioFocusChangeListener);
