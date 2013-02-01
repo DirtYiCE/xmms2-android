@@ -1,27 +1,21 @@
 package org.xmms2.server;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaMetadataRetriever;
 import android.media.RemoteControlClient;
-import android.os.AsyncTask;
 import android.os.Build;
-import android.os.Handler;
-import android.text.AndroidCharacter;
-import android.util.Log;
-
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 /**
  * @author Eclipser
  */
+@SuppressLint("NewApi") // Care must be taken here, RemoteControlClient is API level 14+ only
 public class RemoteControl implements PlaybackStatusListener, MetadataListener
 {
 

@@ -1,6 +1,7 @@
 package org.xmms2.server;
 
 import android.content.res.Resources;
+import android.util.SparseArray;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,7 @@ public enum PlaybackStatus
     PAUSED(2, R.string.paused);
     private final int id;
     private final int resource;
-    private static final Map<Integer, PlaybackStatus> map = new HashMap<Integer, PlaybackStatus>();
+    private static final SparseArray<PlaybackStatus> map = new SparseArray<PlaybackStatus>();
 
     private PlaybackStatus(int id, int resource)
     {

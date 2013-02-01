@@ -11,7 +11,8 @@
                android:src="@drawable/notification"
                android:scaleType="center"
                android:layout_alignParentLeft="true"
-               android:layout_alignParentTop="true" />
+               android:layout_alignParentTop="true"
+               android:contentDescription="@string/icon_description"/>
 
     <ImageView android:id="@+id/close"
                android:src="@drawable/stop"
@@ -21,7 +22,8 @@
                android:scaleType="center"
                android:layout_marginRight="4dp"
                android:layout_alignParentRight="true"
-               android:layout_centerVertical="true" />
+               android:layout_centerVertical="true"
+               android:contentDescription="@string/stop"/>
 
     <ImageView android:id="@+id/next"
                android:src="@drawable/next"
@@ -30,7 +32,8 @@
                android:layout_width="wrap_content"
                android:layout_height="wrap_content"
                android:layout_toLeftOf="@id/close"
-               android:layout_centerVertical="true" />
+               android:layout_centerVertical="true"
+               android:contentDescription="@string/next"/>
 
     <ImageView android:id="@+id/toggle"
                android:src="@drawable/pause"
@@ -39,7 +42,8 @@
                android:layout_width="wrap_content"
                android:layout_height="wrap_content"
                android:layout_toLeftOf="@id/next"
-               android:layout_centerVertical="true" />
+               android:layout_centerVertical="true"
+               android:contentDescription="@string/pause"/>
 
     <LinearLayout android:orientation="vertical"
                   android:layout_alignParentTop="true"
@@ -52,14 +56,12 @@
                   android:gravity="center_vertical">
 
          <TextView android:id="@+id/title"
-                   android:text="test"
                    style="@style/notification_title"
                    android:singleLine="true"
                    android:layout_width="wrap_content"
                    android:layout_height="wrap_content" />
 
          <TextView android:id="@+id/artist"
-                   android:text="test"
                    android:singleLine="true"
                    style="@style/notification_text"
                    android:layout_width="wrap_content"

@@ -40,7 +40,7 @@ public class Server extends Service implements NotificationUpdater
     private MediaObserver mediaObserver;
     private AudioManager audioManager;
 
-    private final Queue<Messenger> queue = new LinkedList<Messenger>();
+    private static final Queue<Messenger> queue = new LinkedList<Messenger>();
 
     // these handlers are used from native side
     private StatusHandler statusHandler;
@@ -72,9 +72,10 @@ public class Server extends Service implements NotificationUpdater
         focusHandler.registerFocusListener(headsetReceiver);
     }
 
-    class MessageHandler extends Handler
+    static class MessageHandler extends Handler
     {
         static final int MSG_START = 1;
+        static boolean running;
 
         @Override
         public void handleMessage(Message msg)
@@ -102,10 +103,10 @@ public class Server extends Service implements NotificationUpdater
         return messenger.getBinder();
     }
 
-    private void notifyClient(Messenger messenger)
+    private static void notifyClient(Messenger messenger)
     {
         Bundle bundle = new Bundle();
-        bundle.putBoolean("running", running);
+        bundle.putBoolean("running", MessageHandler.running);
         bundle.putString("address", "tcp://localhost:9667");
         Message reply = Message.obtain(null, MessageHandler.MSG_START);
         reply.setData(bundle);
@@ -118,6 +119,7 @@ public class Server extends Service implements NotificationUpdater
     {
         synchronized (queue) {
             running = true;
+            MessageHandler.running = true;
             Messenger messenger = queue.poll();
             while (messenger != null) {
                 notifyClient(messenger);
@@ -231,6 +233,7 @@ public class Server extends Service implements NotificationUpdater
                 public void run()
                 {
                     start();
+                    MessageHandler.running = false;
                     running = false;
                     stopForeground(true);
                     mediaObserver.stopWatching();

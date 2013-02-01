@@ -1,6 +1,5 @@
 package org.xmms2.server;
 
-import android.R;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -20,14 +19,14 @@ public class CoverArtSource extends LruCache<String, Bitmap>
         super(maxSize);
 
         Resources resources = context.getResources();
-        notificationWidth = resources.getDimensionPixelSize(R.dimen.notification_large_icon_width);
-        notificationHeight = resources.getDimensionPixelSize(R.dimen.notification_large_icon_height);
+        notificationWidth = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_width);
+        notificationHeight = resources.getDimensionPixelSize(android.R.dimen.notification_large_icon_height);
     }
 
     @Override
     protected int sizeOf(String key, Bitmap value)
     {
-        return value.getByteCount();
+        return value.getRowBytes() * value.getHeight();
     }
 
     @Override
