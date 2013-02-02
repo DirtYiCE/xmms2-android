@@ -275,6 +275,11 @@ public class Server extends Service implements NotificationUpdater
         return pluginPath;
     }
 
+    private String getBrowseRoot()
+    {
+        return Environment.getExternalStorageDirectory().getAbsolutePath();
+    }
+
     public static void updateExternalStorageState()
     {
         String state = Environment.getExternalStorageState();

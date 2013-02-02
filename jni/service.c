@@ -79,6 +79,7 @@ typedef struct {
 	jclass server_class;
 	jmethodID plugin_path_get;
 	jmethodID server_ready;
+	jmethodID browse_root;
 
 	jobject status_handler;
 	jmethodID update_status;
@@ -577,6 +578,7 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	cache->plugin_path_get = (*env)->GetMethodID (env, clazz, "getPluginPath",
 	                                              "()Ljava/lang/String;");
 	cache->server_ready = (*env)->GetMethodID (env, clazz, "serverReady", "()V");
+	cache->browse_root = (*env)->GetMethodID (env, clazz, "getBrowseRoot", "()Ljava/lang/String;");
 
 	cache->status_handler = (*env)->NewGlobalRef (env, (*env)->GetObjectField (env, thiz, handler_id));
 	clazz = (*env)->GetObjectClass (env, cache->status_handler);
@@ -724,6 +726,13 @@ start_service (JNIEnv *env, jobject thiz)
 	mainobj->starttime = time (NULL);
 
 	mainloop = g_main_loop_new (NULL, FALSE);
+
+	{
+		jstring *root = (*env)->CallObjectMethod (env, thiz, java_cache->browse_root);
+		const char *str = (*env)->GetStringUTFChars (env, root, 0);
+		xmms_config_property_register ("android.browse_root", str, NULL, NULL);
+		(*env)->ReleaseStringUTFChars (env, root, str);
+	}
 
 	(*env)->CallVoidMethod (env, thiz, java_cache->server_ready);
 	g_main_loop_run (mainloop);
