@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.support.v4.app.NotificationCompat;
+import android.text.TextUtils;
 import android.widget.RemoteViews;
 
 /**
@@ -24,6 +25,7 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
     private final NotificationCompat.Builder builder;
 
     private PlaybackStatus status = PlaybackStatus.STOPPED;
+    private String coverArtId;
 
     private final BroadcastReceiver notificationActionReceiver = new BroadcastReceiver()
     {
@@ -85,6 +87,19 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
         builder.setContentText(metadataHandler.getArtist());
         notificationView.setTextViewText(R.id.artist, metadataHandler.getArtist());
         builder.setTicker(metadataHandler.getTicker());
+        setCoverArt(metadataHandler);
+
+        updater.updateNotification(builder.build());
+    }
+
+    private void setCoverArt(MetadataHandler metadataHandler)
+    {
+        String id = metadataHandler.getCoverArtId();
+        if (TextUtils.equals(id, coverArtId)) {
+            return;
+        }
+
+        coverArtId = id;
         Bitmap coverArt = metadataHandler.getCoverArt();
         builder.setLargeIcon(coverArt);
         if (coverArt != null) {
@@ -92,8 +107,6 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
         } else {
             notificationView.setImageViewResource(R.id.icon, R.drawable.notification);
         }
-
-        updater.updateNotification(builder.build());
     }
 
     @Override

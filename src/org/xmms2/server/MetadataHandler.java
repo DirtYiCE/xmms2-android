@@ -80,6 +80,11 @@ public class MetadataHandler
         return bitmap.copy(bitmap.getConfig(), false);
     }
 
+    public String getCoverArtId()
+    {
+        return pictureFront;
+    }
+
     public void registerMetadataListener(MetadataListener listener)
     {
         metadataListeners.add(listener);
