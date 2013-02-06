@@ -61,7 +61,7 @@ public class AudioFocusHandler implements AudioManager.OnAudioFocusChangeListene
                     break;
                 case PAUSED:
                     if (playbackStateWhenLostFocus == PlaybackState.PLAYING &&
-                        headsetStateWhenPaused == headsetState || headsetStateWhenPaused == HeadsetState.UNPLUGGED) {
+                        (headsetStateWhenPaused == headsetState || headsetStateWhenPaused == HeadsetState.UNPLUGGED)) {
                         Server.play();
                     }
                     break;
