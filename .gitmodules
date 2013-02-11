@@ -34,3 +34,6 @@
 [submodule "jni/opus"]
 	path = jni/opus
 	url = git://git.opus-codec.org/opus.git
+[submodule "jni/sndfile"]
+	path = jni/sndfile
+	url = git://github.com/erikd/libsndfile.git

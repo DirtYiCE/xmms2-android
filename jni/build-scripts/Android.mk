@@ -74,6 +74,10 @@ MODPLUG_SOURCE := $(MODPLUG_TOP)/src
 MODPLUG_CONFIG := $(LOCAL_PATH)/config/modplug
 MODPLUG_INCLUDE := $(LOCAL_PATH)/$(MODPLUG_SOURCE) $(MODPLUG_CONFIG)
 
+SNDFILE_TOP := sndfile
+SNDFILE_SOURCE := $(SNDFILE_TOP)/src
+SNDFILE_INCLUDES := $(LOCAL_PATH)/config/sndfile/
+
 include $(BUILD_SCRIPTS_DIR)/iconv/iconv.mk
 include $(BUILD_SCRIPTS_DIR)/glib/pcre.mk
 include $(BUILD_SCRIPTS_DIR)/glib/glib.mk
@@ -90,6 +94,7 @@ include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
 include $(BUILD_SCRIPTS_DIR)/modplug/modplug.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/opus/opus.mk
+include $(BUILD_SCRIPTS_DIR)/sndfile/sndfile.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
@@ -107,3 +112,4 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/mp4.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/equalizer.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/wave.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/opus.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/sndfile.mk
