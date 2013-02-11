@@ -105,4 +105,5 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/android.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/icymetaint.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/mp4.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/equalizer.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/wave.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/opus.mk
