@@ -37,3 +37,6 @@
 [submodule "jni/sndfile"]
 	path = jni/sndfile
 	url = git://github.com/erikd/libsndfile.git
+[submodule "jni/musepack"]
+	path = jni/musepack
+	url = http://eclipser.xmms2.org/git/musepack.git

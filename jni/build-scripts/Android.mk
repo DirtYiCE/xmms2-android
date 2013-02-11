@@ -78,6 +78,10 @@ SNDFILE_TOP := sndfile
 SNDFILE_SOURCE := $(SNDFILE_TOP)/src
 SNDFILE_INCLUDES := $(LOCAL_PATH)/config/sndfile/
 
+MUSEPACK_TOP := musepack
+MUSEPACK_SOURCE := $(MUSEPACK_TOP)
+MUSEPACK_INCLUDES := $(LOCAL_PATH)/$(MUSEPACK_TOP)/include
+
 include $(BUILD_SCRIPTS_DIR)/iconv/iconv.mk
 include $(BUILD_SCRIPTS_DIR)/glib/pcre.mk
 include $(BUILD_SCRIPTS_DIR)/glib/glib.mk
@@ -95,6 +99,7 @@ include $(BUILD_SCRIPTS_DIR)/modplug/modplug.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/opus/opus.mk
 include $(BUILD_SCRIPTS_DIR)/sndfile/sndfile.mk
+include $(BUILD_SCRIPTS_DIR)/musepack/musepack.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
@@ -113,3 +118,4 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/equalizer.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/wave.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/opus.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/sndfile.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/musepack.mk
