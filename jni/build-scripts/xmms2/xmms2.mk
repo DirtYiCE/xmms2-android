@@ -25,7 +25,6 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/compat/statfs_linux.c \
     $(XMMS_SOURCE)/xmms/streamtype.c \
     $(XMMS_SOURCE)/xmms/compat/symlink_unix.c \
-    $(XMMS_SOURCE)/xmms/collserial.c \
     $(XMMS_SOURCE)/xmms/fetchspec.c \
     $(XMMS_SOURCE)/lib/xmmsipc/transport.c \
     $(XMMS_SOURCE)/lib/xmmsipc/url.c \

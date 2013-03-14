@@ -40,3 +40,6 @@
 [submodule "jni/musepack"]
 	path = jni/musepack
 	url = http://eclipser.xmms2.org/git/musepack.git
+[submodule "jni/opusfile"]
+	path = jni/opusfile
+	url = git://git.xiph.org/opusfile.git

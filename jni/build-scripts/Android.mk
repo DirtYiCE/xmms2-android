@@ -42,6 +42,10 @@ OPUS_TOP := opus
 OPUS_SOURCE := $(OPUS_TOP)
 OPUS_INCLUDES := $(LOCAL_PATH)/$(OPUS_SOURCE)/include
 
+OPUSFILE_TOP := opusfile
+OPUSFILE_SOURCE := $(OPUSFILE_TOP)/src
+OPUSFILE_INCLUDES := $(LOCAL_PATH)/$(OPUSFILE_TOP)/include
+
 S4_TOP := s4
 S4 := $(LOCAL_PATH)/$(S4_TOP)
 S4_INCLUDE := $(S4)/include
@@ -98,6 +102,7 @@ include $(BUILD_SCRIPTS_DIR)/ogg/ogg.mk
 include $(BUILD_SCRIPTS_DIR)/modplug/modplug.mk
 include $(BUILD_SCRIPTS_DIR)/tremor/tremor.mk
 include $(BUILD_SCRIPTS_DIR)/opus/opus.mk
+include $(BUILD_SCRIPTS_DIR)/opus/opusfile.mk
 include $(BUILD_SCRIPTS_DIR)/sndfile/sndfile.mk
 include $(BUILD_SCRIPTS_DIR)/musepack/musepack.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
