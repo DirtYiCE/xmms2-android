@@ -34,10 +34,7 @@ __int_xmms_cmd_get (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 
-	xmmsv_coll_t * retval = xmms_collection_client_get ((xmms_coll_dag_t *) object, argval0, argval1, &arg->error);
-	if (retval != NULL) {
-		arg->retval = xmmsv_new_coll (retval);
-	}
+	arg->retval = xmms_collection_client_get ((xmms_coll_dag_t *) object, argval0, argval1, &arg->error);
 }
 
 
@@ -78,7 +75,7 @@ __int_xmms_cmd_save (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 	}
 	const char * argval0;
 	const char * argval1;
-	xmmsv_coll_t * argval2;
+	xmmsv_t * argval2;
 
 	if (!xmmsv_list_get (arg->args, 0, &t)) {
 		XMMS_DBG ("Missing arg 0 in save");
@@ -105,11 +102,7 @@ __int_xmms_cmd_save (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 2 in save");
 		return;
 	}
-	if (!xmmsv_get_coll (t, &argval2)) {
-		XMMS_DBG ("Error parsing arg 2 in save");
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Error parsing arg 2 in save");
-		return;
-	}
+	argval2 = t;
 
 	xmms_collection_client_save ((xmms_coll_dag_t *) object, argval0, argval1, argval2, &arg->error);
 	arg->retval = xmmsv_new_none ();
@@ -249,7 +242,7 @@ __int_xmms_cmd_query (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Wrong number of arguments to query");
 		return;
 	}
-	xmmsv_coll_t * argval0;
+	xmmsv_t * argval0;
 	xmmsv_t * argval1;
 
 	if (!xmmsv_list_get (arg->args, 0, &t)) {
@@ -257,11 +250,7 @@ __int_xmms_cmd_query (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 0 in query");
 		return;
 	}
-	if (!xmmsv_get_coll (t, &argval0)) {
-		XMMS_DBG ("Error parsing arg 0 in query");
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Error parsing arg 0 in query");
-		return;
-	}
+	argval0 = t;
 	if (!xmmsv_list_get (arg->args, 1, &t)) {
 		XMMS_DBG ("Missing arg 1 in query");
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 1 in query");
@@ -282,7 +271,7 @@ __int_xmms_cmd_query_infos (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Wrong number of arguments to query_infos");
 		return;
 	}
-	xmmsv_coll_t * argval0;
+	xmmsv_t * argval0;
 	gint32 argval1;
 	gint32 argval2;
 	xmmsv_t * argval3;
@@ -293,11 +282,7 @@ __int_xmms_cmd_query_infos (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 0 in query_infos");
 		return;
 	}
-	if (!xmmsv_get_coll (t, &argval0)) {
-		XMMS_DBG ("Error parsing arg 0 in query_infos");
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Error parsing arg 0 in query_infos");
-		return;
-	}
+	argval0 = t;
 	if (!xmmsv_list_get (arg->args, 1, &t)) {
 		XMMS_DBG ("Missing arg 1 in query_infos");
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 1 in query_infos");
@@ -323,11 +308,19 @@ __int_xmms_cmd_query_infos (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 3 in query_infos");
 		return;
 	}
+	if (!xmmsv_list_restrict_type (t, XMMSV_TYPE_STRING)) {
+		XMMS_DBG("Wrong list content (not string) for arg 3 in query_infos.");
+		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Wrong list content (not string) for arg 3 in query_infos.");
+	}
 	argval3 = t;
 	if (!xmmsv_list_get (arg->args, 4, &t)) {
 		XMMS_DBG ("Missing arg 4 in query_infos");
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 4 in query_infos");
 		return;
+	}
+	if (!xmmsv_list_restrict_type (t, XMMSV_TYPE_STRING)) {
+		XMMS_DBG("Wrong list content (not string) for arg 4 in query_infos.");
+		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Wrong list content (not string) for arg 4 in query_infos.");
 	}
 	argval4 = t;
 
@@ -357,25 +350,7 @@ __int_xmms_cmd_idlist_from_playlist (xmms_object_t *object, xmms_object_cmd_arg_
 		return;
 	}
 
-	xmmsv_coll_t * retval = xmms_collection_client_idlist_from_playlist ((xmms_coll_dag_t *) object, argval0, &arg->error);
-	if (retval != NULL) {
-		arg->retval = xmmsv_new_coll (retval);
-	}
-}
-
-
-static void
-__int_xmms_cmd_sync (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
-{
-	if (xmmsv_list_get_size (arg->args) != 0) {
-		XMMS_DBG ("Wrong number of arguments to sync (%d)", xmmsv_list_get_size (arg->args));
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Wrong number of arguments to sync");
-		return;
-	}
-
-
-	xmms_collection_client_sync ((xmms_coll_dag_t *) object, &arg->error);
-	arg->retval = xmmsv_new_none ();
+	arg->retval = xmms_collection_client_idlist_from_playlist ((xmms_coll_dag_t *) object, argval0, &arg->error);
 }
 
 
@@ -394,7 +369,6 @@ xmms_collection_register_ipc_commands (xmms_object_t *collection_object)
 	xmms_object_cmd_add (collection_object, 38, __int_xmms_cmd_query);
 	xmms_object_cmd_add (collection_object, 39, __int_xmms_cmd_query_infos);
 	xmms_object_cmd_add (collection_object, 40, __int_xmms_cmd_idlist_from_playlist);
-	xmms_object_cmd_add (collection_object, 41, __int_xmms_cmd_sync);
 
 	xmms_ipc_broadcast_register (collection_object, 11);
 

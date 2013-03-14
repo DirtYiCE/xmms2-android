@@ -11,7 +11,7 @@ __int_xmms_cmd_replace (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		return;
 	}
 	const char * argval0;
-	xmmsv_coll_t * argval1;
+	xmmsv_t * argval1;
 	gint32 argval2;
 
 	if (!xmmsv_list_get (arg->args, 0, &t)) {
@@ -29,11 +29,7 @@ __int_xmms_cmd_replace (xmms_object_t *object, xmms_object_cmd_arg_t *arg)
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 1 in replace");
 		return;
 	}
-	if (!xmmsv_get_coll (t, &argval1)) {
-		XMMS_DBG ("Error parsing arg 1 in replace");
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Error parsing arg 1 in replace");
-		return;
-	}
+	argval1 = t;
 	if (!xmmsv_list_get (arg->args, 2, &t)) {
 		XMMS_DBG ("Missing arg 2 in replace");
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 2 in replace");
@@ -150,7 +146,7 @@ __int_xmms_cmd_add_collection (xmms_object_t *object, xmms_object_cmd_arg_t *arg
 		return;
 	}
 	const char * argval0;
-	xmmsv_coll_t * argval1;
+	xmmsv_t * argval1;
 
 	if (!xmmsv_list_get (arg->args, 0, &t)) {
 		XMMS_DBG ("Missing arg 0 in add_collection");
@@ -167,11 +163,7 @@ __int_xmms_cmd_add_collection (xmms_object_t *object, xmms_object_cmd_arg_t *arg
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 1 in add_collection");
 		return;
 	}
-	if (!xmmsv_get_coll (t, &argval1)) {
-		XMMS_DBG ("Error parsing arg 1 in add_collection");
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Error parsing arg 1 in add_collection");
-		return;
-	}
+	argval1 = t;
 
 	xmms_playlist_client_add_collection ((xmms_playlist_t *) object, argval0, argval1, &arg->error);
 	arg->retval = xmmsv_new_none ();
@@ -394,7 +386,7 @@ __int_xmms_cmd_insert_collection (xmms_object_t *object, xmms_object_cmd_arg_t *
 	}
 	const char * argval0;
 	gint32 argval1;
-	xmmsv_coll_t * argval2;
+	xmmsv_t * argval2;
 
 	if (!xmmsv_list_get (arg->args, 0, &t)) {
 		XMMS_DBG ("Missing arg 0 in insert_collection");
@@ -421,11 +413,7 @@ __int_xmms_cmd_insert_collection (xmms_object_t *object, xmms_object_cmd_arg_t *
 		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Missing arg 2 in insert_collection");
 		return;
 	}
-	if (!xmmsv_get_coll (t, &argval2)) {
-		XMMS_DBG ("Error parsing arg 2 in insert_collection");
-		xmms_error_set (&arg->error, XMMS_ERROR_INVAL, "Error parsing arg 2 in insert_collection");
-		return;
-	}
+	argval2 = t;
 
 	xmms_playlist_client_insert_collection ((xmms_playlist_t *) object, argval0, argval1, argval2, &arg->error);
 	arg->retval = xmmsv_new_none ();
