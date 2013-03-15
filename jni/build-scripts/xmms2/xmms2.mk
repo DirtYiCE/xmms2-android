@@ -35,10 +35,6 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/config.c \
     config/xmms2/compat/thread_name_prctl.c \
     $(XMMS_SOURCE)/xmms/outputplugin.c \
-    $(XMMS_SOURCE)/lib/xmmsutils/stacktrace_dummy.c \
-    $(XMMS_SOURCE)/lib/xmmsutils/strlist.c \
-    config/xmms2/lib/xmmsutils/utils_android.c \
-    $(XMMS_SOURCE)/lib/xmmsutils/utils.c \
     $(XMMS_SOURCE)/xmms/playlist_updater.c \
     $(XMMS_SOURCE)/xmms/output.c \
     $(XMMS_SOURCE)/lib/xmmssocket/socket_common.c \
@@ -47,16 +43,6 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/log.c \
     $(XMMS_SOURCE)/xmms/magic.c \
     $(XMMS_SOURCE)/xmms/collection.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/value_serialize.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xlist.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_bitbuffer.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_build.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_coll.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_copy.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_dict.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_general.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_list.c \
-    $(XMMS_SOURCE)/lib/xmmstypes/xmmsv_util.c \
     $(XMMS_SOURCE)/xmms/collsync.c \
     $(XMMS_SOURCE)/xmms/converter_plugin.c \
     $(XMMS_SOURCE)/xmms/compat/signal_unix.c \
@@ -75,7 +61,7 @@ LOCAL_CFLAGS := -pthread -D_SEM_SEMUN_UNDEFINED $(DEBUG_FLAG)
 LOCAL_C_INCLUDES := $(GLIB_INCLUDES) $(GMODULE_INCLUDES) $(S4_INCLUDE) $(XMMS_INCLUDES)
 
 LOCAL_SHARED_LIBRARIES := glib-2.0 gmodule-2.0 gthread-2.0
-LOCAL_STATIC_LIBRARIES := s4
+LOCAL_STATIC_LIBRARIES := s4 xmmstypes xmmsutils
 LOCAL_MODULE := xmms2
 LOCAL_LDLIBS := -llog
 

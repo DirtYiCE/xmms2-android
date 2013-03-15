@@ -105,6 +105,9 @@ include $(BUILD_SCRIPTS_DIR)/opus/opus.mk
 include $(BUILD_SCRIPTS_DIR)/opus/opusfile.mk
 include $(BUILD_SCRIPTS_DIR)/sndfile/sndfile.mk
 include $(BUILD_SCRIPTS_DIR)/musepack/musepack.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/xmmstypes.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/xmmsutils.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/migrate-collections.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/xmms2.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/file.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/flac.mk
@@ -124,3 +127,4 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/wave.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/opus.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/sndfile.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/musepack.mk
+include $(BUILD_SCRIPTS_DIR)/xmms2/tool-runner.mk

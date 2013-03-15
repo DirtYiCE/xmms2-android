@@ -6,7 +6,10 @@ import android.app.Service;
 import android.content.*;
 import android.media.AudioManager;
 import android.os.*;
+import android.util.Log;
 
+import java.io.*;
+import java.lang.Process;
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -179,7 +182,10 @@ public class Server extends Service implements NotificationUpdater
                 @Override
                 public void run()
                 {
-                    start();
+                    try {
+                        runMigrateCollections();
+                        start();
+                    } catch (InterruptedException ignored) {}
                     MessageHandler.running = false;
                     running = false;
                     stopForeground(true);
@@ -191,6 +197,53 @@ public class Server extends Service implements NotificationUpdater
             serverThread.start();
         }
         return START_NOT_STICKY;
+    }
+
+    private void runMigrateCollections() throws InterruptedException
+    {
+        File conf = new File(getConfigDir(), "config");
+        if (conf.exists() && conf.isDirectory()) {
+            File collections = new File(conf, "collections");
+            File[] files = collections.listFiles(new FilenameFilter()
+            {
+                @Override
+                public boolean accept(File dir, String filename)
+                {
+                    return !filename.endsWith(".legacy") && new File(dir, filename).isDirectory();
+                }
+            });
+
+            File workingDirectory = new File(getPluginPath());
+            for (File file : workingDirectory.listFiles()) {
+                Log.d("XMMS2", file.getAbsolutePath());
+            }
+
+            String migrateCollections = "migrate-collections";
+            String exec = workingDirectory.getAbsolutePath() + "/libtool-runner.so";
+            for (File file : files) {
+                Log.d("XMMS2", "Running " + migrateCollections + " " + file.getAbsolutePath());
+                try {
+                    Process process = new ProcessBuilder()
+                                    .directory(workingDirectory)
+                                    .command(exec, workingDirectory.getAbsolutePath(), migrateCollections, file.getAbsolutePath())
+                                    .redirectErrorStream(true)
+                                    .start();
+
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                    int read;
+                    char[] buffer = new char[4096];
+                    StringBuilder output = new StringBuilder();
+                    while ((read = reader.read(buffer)) > 0) {
+                        output.append(buffer, 0, read);
+                    }
+                    reader.close();
+                    process.waitFor();
+                    Log.d("XMMS2", output.toString());
+                } catch (IOException e) {
+                    Log.e("XMMS2", e.getMessage(), e);
+                }
+            }
+        }
     }
 
     @Override
