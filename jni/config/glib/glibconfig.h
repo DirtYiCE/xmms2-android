@@ -2,8 +2,8 @@
  *
  */
 
-#ifndef __G_LIBCONFIG_H__
-#define __G_LIBCONFIG_H__
+#ifndef __GLIBCONFIG_H__
+#define __GLIBCONFIG_H__
 
 #include <glib/gmacros.h>
 
@@ -102,8 +102,8 @@ typedef unsigned int guintptr;
 #define g_memmove(dest,src,len) G_STMT_START { memmove ((dest), (src), (len)); } G_STMT_END
 
 #define GLIB_MAJOR_VERSION 2
-#define GLIB_MINOR_VERSION 30
-#define GLIB_MICRO_VERSION 3
+#define GLIB_MINOR_VERSION 32
+#define GLIB_MICRO_VERSION 4
 
 #define G_OS_UNIX
 
@@ -156,36 +156,7 @@ typedef unsigned int guintptr;
 
 #define G_THREADS_ENABLED
 #define G_THREADS_IMPL_POSIX
-typedef struct _GStaticMutex GStaticMutex;
-struct _GStaticMutex
-{
-  struct _GMutex *runtime_mutex;
-  union {
-    char   pad[40];
-    double dummy_double;
-    void  *dummy_pointer;
-    long   dummy_long;
-  } static_mutex;
-};
-#define	G_STATIC_MUTEX_INIT	{ NULL, { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0} } }
-/* #define	G_STATIC_MUTEX_INIT NULL */
-#define	g_static_mutex_get_mutex(mutex) \
-  (g_thread_use_default_impl ? ((GMutex*)(gpointer) ((mutex)->static_mutex.pad)) : \
-   g_static_mutex_get_mutex_impl_shortcut (&((mutex)->runtime_mutex)))
-/* This represents a system thread as used by the implementation. An
- * alien implementaion, as loaded by g_thread_init can only count on
- * "sizeof (gpointer)" bytes to store their info. We however need more
- * for some of our native implementations. */
-typedef union _GSystemThread GSystemThread;
-union _GSystemThread
-{
-  char   data[4];
-  double dummy_double;
-  void  *dummy_pointer;
-  long   dummy_long;
-};
-
-#define G_ATOMIC_OP_USE_GCC_BUILTINS 1
+/* #define G_ATOMIC_LOCK_FREE */
 
 #define GINT16_TO_LE(val)	((gint16) (val))
 #define GUINT16_TO_LE(val)	((guint16) (val))
@@ -222,13 +193,6 @@ union _GSystemThread
 
 #define G_MODULE_SUFFIX "so"
 
-/* A GPid is an abstraction for a process "handle". It is *not* an
- * abstraction for a process identifier in general. GPid is used in
- * GLib only for descendant processes spawned with the g_spawn*
- * functions. On POSIX there is no "process handle" concept as such,
- * but on Windows a GPid is a handle to a process, a kind of pointer,
- * not a process identifier.
- */
 typedef int GPid;
 
 #define GLIB_SYSDEF_AF_UNIX 1
@@ -241,4 +205,4 @@ typedef int GPid;
 
 G_END_DECLS
 
-#endif /* GLIBCONFIG_H */
+#endif /* __GLIBCONFIG_H__ */

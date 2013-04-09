@@ -3,20 +3,22 @@ include $(CLEAR_VARS)
 PCRE_DIR := $(GLIB_TOP)/glib/pcre
 
 LOCAL_SRC_FILES := \
+	$(PCRE_DIR)/pcre_byte_order.c \
 	$(PCRE_DIR)/pcre_chartables.c \
-	$(PCRE_DIR)/pcre_fullinfo.c \
-	$(PCRE_DIR)/pcre_study.c \
 	$(PCRE_DIR)/pcre_compile.c \
-	$(PCRE_DIR)/pcre_get.c \
-	$(PCRE_DIR)/pcre_tables.c \
 	$(PCRE_DIR)/pcre_config.c \
-	$(PCRE_DIR)/pcre_globals.c \
-	$(PCRE_DIR)/pcre_try_flipped.c \
 	$(PCRE_DIR)/pcre_dfa_exec.c \
-	$(PCRE_DIR)/pcre_newline.c \
-	$(PCRE_DIR)/pcre_ucp_searchfuncs.c \
 	$(PCRE_DIR)/pcre_exec.c \
+	$(PCRE_DIR)/pcre_fullinfo.c \
+	$(PCRE_DIR)/pcre_get.c \
+	$(PCRE_DIR)/pcre_globals.c \
+	$(PCRE_DIR)/pcre_jit_compile.c \
+	$(PCRE_DIR)/pcre_newline.c \
 	$(PCRE_DIR)/pcre_ord2utf8.c \
+	$(PCRE_DIR)/pcre_string_utils.c \
+	$(PCRE_DIR)/pcre_study.c \
+	$(PCRE_DIR)/pcre_tables.c \
+	$(PCRE_DIR)/pcre_valid_utf8.c \
 	$(PCRE_DIR)/pcre_xclass.c
 
 LOCAL_MODULE := pcre
@@ -34,7 +36,6 @@ LOCAL_CFLAGS := \
 	-DLINK_SIZE=2 \
 	-DPOSIX_MALLOC_THRESHOLD=10 \
 	-DPCRE_STATIC \
-	-DG_DISABLE_DEPRECATED \
 	-DGLIB_COMPILATION \
 	$(DEBUG_FLAG)
 
