@@ -11,7 +11,7 @@
 #define ALIGNOF_GUINT64 8
 
 /* The normal alignment of `unsigned long', in bytes. */
-#define ALIGNOF_UNSIGNED_LONG 8
+#define ALIGNOF_UNSIGNED_LONG 4
 
 /* poll doesn't work on devices */
 /* #undef BROKEN_POLL */
