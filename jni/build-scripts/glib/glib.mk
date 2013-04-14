@@ -86,7 +86,8 @@ LOCAL_SRC_FILES := \
 	$(GLIB_DIR)/gwakeup.c \
 	$(GLIB_DIR)/gprintf.c \
 	$(GLIB_DIR)/glib-unix.c \
-	$(GLIB_DIR)/gthread-posix.c
+	$(GLIB_DIR)/gthread-posix.c \
+	config/glib/pthread-rwlocks.c
 
 LOCAL_MODULE := glib-2.0
 LOCAL_STATIC_LIBRARIES := pcre iconv
