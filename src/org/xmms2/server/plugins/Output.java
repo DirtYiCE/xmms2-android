@@ -11,6 +11,7 @@ import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,7 @@ public class Output implements PlaybackStatusListener, Runnable
     private final AudioFocusHandler audioFocusChangeListener;
     private Thread audioThread = null;
     private boolean playing = false;
-    private List<byte[]> pausedBuffers = new ArrayList<byte[]>();
+    private List<byte[]> pausedBuffers = Collections.synchronizedList(new ArrayList<byte[]>());
 
     private final Object lock = new Object();
     private int rate;
@@ -201,6 +202,7 @@ public class Output implements PlaybackStatusListener, Runnable
         if (newStatus == PlaybackStatus.PAUSED && audioTrack != null &&
             audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && playing) {
 
+            audioThread.interrupt();
             paused.set(true);
             buffers.drainTo(pausedBuffers);
         }
@@ -248,9 +250,9 @@ public class Output implements PlaybackStatusListener, Runnable
     private void playLoop() throws InterruptedException
     {
         while (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING &&
-               !audioThread.isInterrupted() && !paused.get()) {
+               !audioThread.isInterrupted()) {
             byte b[] = null;
-            while (b == null && !audioThread.isInterrupted()) {
+            while (b == null) {
                 b = buffers.poll(20, TimeUnit.MILLISECONDS);
                 if (b == null && formatChanged.get()) {
                     return;
@@ -259,10 +261,14 @@ public class Output implements PlaybackStatusListener, Runnable
 
             updateLatency();
 
-            if (b != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+            if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                 audioTrack.write(b, 0, b.length);
+                if (paused.get()) {
+                    pausedBuffers.add(0, b);
+                    return;
+                }
             }
-            if (b != null && b.length == BUFFER_SIZE) {
+            if (b.length == BUFFER_SIZE) {
                 free.offer(b);
             }
         }
