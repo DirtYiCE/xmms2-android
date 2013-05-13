@@ -29,7 +29,6 @@ public class Output implements PlaybackStatusListener, Runnable
     private final AudioFocusHandler audioFocusChangeListener;
     private Thread audioThread = null;
     private boolean playing = false;
-    private List<byte[]> pausedBuffers = Collections.synchronizedList(new ArrayList<byte[]>());
 
     private final Object lock = new Object();
     private int rate;
@@ -64,7 +63,6 @@ public class Output implements PlaybackStatusListener, Runnable
     public void flush()
     {
         buffers.clear();
-        pausedBuffers.clear();
         if (audioTrack != null) {
             audioTrack.flush();
         }
@@ -78,7 +76,6 @@ public class Output implements PlaybackStatusListener, Runnable
         playing = false;
         free.clear();
         buffers.clear();
-        pausedBuffers.clear();
         audioManager.abandonAudioFocus(audioFocusChangeListener);
     }
 
@@ -141,10 +138,6 @@ public class Output implements PlaybackStatusListener, Runnable
             free.put(new byte[BUFFER_SIZE]);
         }
         a = free.take();
-        if (!pausedBuffers.isEmpty()) {
-            buffers.addAll(pausedBuffers);
-            pausedBuffers.clear();
-        }
         audioThread.start();
     }
 
@@ -202,9 +195,12 @@ public class Output implements PlaybackStatusListener, Runnable
         if (newStatus == PlaybackStatus.PAUSED && audioTrack != null &&
             audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING && playing) {
 
-            audioThread.interrupt();
             paused.set(true);
-            buffers.drainTo(pausedBuffers);
+        } else if (newStatus == PlaybackStatus.PLAYING && audioTrack != null && playing) {
+            paused.set(false);
+            synchronized (lock) {
+                lock.notify();
+            }
         }
     }
 
@@ -227,7 +223,6 @@ public class Output implements PlaybackStatusListener, Runnable
 
             if (audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
                 audioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
-                paused.set(false);
                 audioTrack.play();
             }
 
@@ -253,6 +248,13 @@ public class Output implements PlaybackStatusListener, Runnable
                !audioThread.isInterrupted()) {
             byte b[] = null;
             while (b == null) {
+                if (paused.get()) {
+                    audioTrack.pause();
+                    synchronized (lock) {
+                        lock.wait();
+                    }
+                    audioTrack.play();
+                }
                 b = buffers.poll(20, TimeUnit.MILLISECONDS);
                 if (b == null && formatChanged.get()) {
                     return;
@@ -263,10 +265,6 @@ public class Output implements PlaybackStatusListener, Runnable
 
             if (audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                 audioTrack.write(b, 0, b.length);
-                if (paused.get()) {
-                    pausedBuffers.add(0, b);
-                    return;
-                }
             }
             if (b.length == BUFFER_SIZE) {
                 free.offer(b);
