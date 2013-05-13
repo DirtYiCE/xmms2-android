@@ -3,9 +3,6 @@ package org.xmms2.server;
 import android.content.res.Resources;
 import android.util.SparseArray;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * @author Eclipser
  */

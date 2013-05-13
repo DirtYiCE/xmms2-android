@@ -4,15 +4,11 @@ import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.util.Log;
 import org.xmms2.server.AudioFocusHandler;
 import org.xmms2.server.PlaybackStatus;
 import org.xmms2.server.PlaybackStatusListener;
 import org.xmms2.server.Server;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;

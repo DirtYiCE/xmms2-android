@@ -201,9 +201,10 @@ public class Server extends Service implements NotificationUpdater
 
     private void runMigrateCollections() throws InterruptedException
     {
+        if (getExternalFilesDir(null) == null) return;
         File conf = new File(getConfigDir(), "config");
-        if (conf.exists() && conf.isDirectory()) {
-            File collections = new File(conf, "collections");
+        File collections = new File(conf, "collections");
+        if (conf.exists() && conf.isDirectory() && collections.exists() && collections.isDirectory()) {
             File[] files = collections.listFiles(new FilenameFilter()
             {
                 @Override
@@ -214,12 +215,9 @@ public class Server extends Service implements NotificationUpdater
             });
 
             File workingDirectory = new File(getPluginPath());
-            for (File file : workingDirectory.listFiles()) {
-                Log.d("XMMS2", file.getAbsolutePath());
-            }
-
             String migrateCollections = "migrate-collections";
             String exec = workingDirectory.getAbsolutePath() + "/libtool-runner.so";
+
             for (File file : files) {
                 Log.d("XMMS2", "Running " + migrateCollections + " " + file.getAbsolutePath());
                 try {
