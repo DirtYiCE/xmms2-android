@@ -11,8 +11,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           xmlns:tools="http://schemas.android.com/tools"
           package="org.xmms2.server"
-          android:versionCode="0820009"
-          android:versionName="pre-0.9-android"
+          android:versionCode="0820010"
+          android:versionName="pre-0.9-android-20130514"
           android:installLocation="auto">
     <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="17"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
