@@ -1,19 +1,21 @@
-package org.xmms2.server;
+package org.xmms2.service.misc;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.graphics.Bitmap;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.widget.RemoteViews;
+import org.xmms2.eclipser.client.protocol.types.PlaybackStatus;
+import org.xmms2.server.R;
+import org.xmms2.server.Server;
 
 /**
  * @author Eclipser
  */
-public class NotificationHandler implements PlaybackStatusListener, MetadataListener
+class NotificationHandler implements PlaybackStatusListener, MetadataListener, CoverArtListener
 {
     private static final String ACTION_TOGGLE_PLAYBACK = "org.xmms2.server.action.TOGGLE_PLAYBACK";
     private static final String ACTION_NEXT = "org.xmms2.server.action.NEXT";
@@ -21,11 +23,13 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
 
     private final Context context;
     private final RemoteViews notificationView;
+    private final ControlClient control;
     private final NotificationUpdater updater;
+    private final CoverArtSource coverArtSource;
     private final NotificationCompat.Builder builder;
 
-    private PlaybackStatus status = PlaybackStatus.STOPPED;
     private String coverArtId;
+    private boolean waitingForCover;
 
     private final BroadcastReceiver notificationActionReceiver = new BroadcastReceiver()
     {
@@ -33,22 +37,21 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
         public void onReceive(Context context, Intent intent)
         {
             if (ACTION_TOGGLE_PLAYBACK.equals(intent.getAction())) {
-                if (status == PlaybackStatus.PLAYING) {
-                    Server.pause();
-                } else {
-                    Server.play();
-                }
+                control.toggle();
             } else if (ACTION_STOP_PLAYBACK.equals(intent.getAction())) {
-                Server.stop();
+                control.stop();
             } else if (ACTION_NEXT.equals(intent.getAction())) {
-                Server.next();
+                control.next();
             }
         }
     };
 
-    public NotificationHandler(Context context, NotificationUpdater updater)
+    NotificationHandler(ControlClient control, Context context, NotificationUpdater updater,
+                        CoverArtSource coverArtSource)
     {
+        this.control = control;
         this.updater = updater;
+        this.coverArtSource = coverArtSource;
         this.context = context.getApplicationContext();
         Intent intent = new Intent(Server.ACTION_START_CLIENT);
         intent.putExtra("address", "tcp://localhost:9667");
@@ -77,6 +80,8 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
         builder.setOngoing(true);
         builder.setSound(null);
         builder.setSmallIcon(R.drawable.notification);
+
+        coverArtSource.registerCoverArtListener(this);
     }
 
     @Override
@@ -87,35 +92,43 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
         builder.setContentText(metadataHandler.getArtist());
         notificationView.setTextViewText(R.id.artist, metadataHandler.getArtist());
         builder.setTicker(metadataHandler.getTicker());
-        setCoverArt(metadataHandler);
+        setCoverArt(metadataHandler.getCoverArtId());
 
         updater.updateNotification(builder.build());
     }
 
-    private void setCoverArt(MetadataHandler metadataHandler)
+    private void setCoverArt(String id)
     {
-        String id = metadataHandler.getCoverArtId();
-        if (TextUtils.equals(id, coverArtId)) {
+        if (TextUtils.equals(id, coverArtId) && !waitingForCover) {
             return;
         }
 
-        coverArtId = id;
-        Bitmap coverArt = metadataHandler.getCoverArt();
-        builder.setLargeIcon(coverArt);
+        waitingForCover = false;
+
+        CoverArt coverArt = null;
+        if (id != null) {
+            coverArt = coverArtSource.get(id);
+        }
         if (coverArt != null) {
-            notificationView.setImageViewBitmap(R.id.icon, coverArt);
+            builder.setLargeIcon(coverArt.notificationArt);
+            notificationView.setImageViewBitmap(R.id.icon, coverArt.notificationArt);
         } else {
+            waitingForCover = id != null;
+            builder.setLargeIcon(null);
             notificationView.setImageViewResource(R.id.icon, R.drawable.notification);
         }
+
+        coverArtId = id;
     }
 
     @Override
     public void playbackStatusChanged(PlaybackStatus newStatus)
     {
-        status = newStatus;
-        if (status != PlaybackStatus.STOPPED) {
-            notificationView.setImageViewResource(R.id.toggle, status == PlaybackStatus.PLAYING ? R.drawable.pause : R.drawable.play);
-            builder.setContentInfo(status.getLiteralString(context.getResources()));
+        if (newStatus != PlaybackStatus.STOP) {
+            int srcId = newStatus == PlaybackStatus.PLAY ? R.drawable.pause : R.drawable.play;
+            notificationView.setImageViewResource(R.id.toggle, srcId);
+            int id = newStatus == PlaybackStatus.PLAY ? R.string.playing : R.string.pause;
+            builder.setContentInfo(context.getString(id));
 
             updater.updateNotification(builder.build());
         } else {
@@ -123,8 +136,16 @@ public class NotificationHandler implements PlaybackStatusListener, MetadataList
         }
     }
 
-    public void unregisterReceiver()
+    public void unregister()
     {
         context.unregisterReceiver(notificationActionReceiver);
+        coverArtSource.unregisterCoverArtListener(this);
+    }
+
+    @Override
+    public void artAvailable(String key)
+    {
+        setCoverArt(key);
+        updater.updateNotification(builder.build());
     }
 }

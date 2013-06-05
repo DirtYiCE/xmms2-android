@@ -1,4 +1,4 @@
-package org.xmms2.server;
+package org.xmms2.service.misc;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -11,28 +11,39 @@ import android.media.AudioManager;
 import android.media.MediaMetadataRetriever;
 import android.media.RemoteControlClient;
 import android.os.Build;
+import android.text.TextUtils;
+import org.xmms2.eclipser.client.protocol.types.PlaybackStatus;
+import org.xmms2.server.R;
 
 /**
  * @author Eclipser
  */
 @SuppressLint("NewApi") // Care must be taken here, RemoteControlClient is API level 14+ only
-public class RemoteControl implements PlaybackStatusListener, MetadataListener
+class RemoteControl implements PlaybackStatusListener, MetadataListener, CoverArtListener
 {
 
     private final RemoteControlClient remoteControlClient;
     private final AudioManager audioManager;
-    private final Bitmap logo;
     private final boolean available;
+    private final CoverArtSource coverArtSource;
+    private final Context context;
+    private String currentId = null;
+    private boolean waitingForCover;
 
-    public RemoteControl(Context context, ComponentName mediaButtonEventHandler)
+    RemoteControl(Context context, ComponentName mediaButtonEventHandler, CoverArtSource coverArtSource)
     {
         available = Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
         if (!available) {
             remoteControlClient = null;
             audioManager = null;
-            logo = null;
+            this.context = null;
+            this.coverArtSource = null;
             return;
         }
+
+        this.context = context;
+        this.coverArtSource = coverArtSource;
+        coverArtSource.registerCoverArtListener(this);
 
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON);
@@ -44,7 +55,7 @@ public class RemoteControl implements PlaybackStatusListener, MetadataListener
                                                      RemoteControlClient.FLAG_KEY_MEDIA_PLAY_PAUSE |
                                                      RemoteControlClient.FLAG_KEY_MEDIA_STOP);
         audioManager.registerRemoteControlClient(remoteControlClient);
-        logo = BitmapFactory.decodeResource(context.getResources(), R.drawable.logo);
+        Bitmap logo = BitmapFactory.decodeResource(context.getResources(), R.drawable.logo);
         remoteControlClient.editMetadata(true)
                            .putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, logo).apply();
     }
@@ -56,13 +67,13 @@ public class RemoteControl implements PlaybackStatusListener, MetadataListener
             return;
         }
         switch (newStatus) {
-            case STOPPED:
+            case STOP:
                 remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_STOPPED);
                 break;
-            case PLAYING:
+            case PLAY:
                 remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_PLAYING);
                 break;
-            case PAUSED:
+            case PAUSE:
                 remoteControlClient.setPlaybackState(RemoteControlClient.PLAYSTATE_PAUSED);
                 break;
         }
@@ -77,13 +88,33 @@ public class RemoteControl implements PlaybackStatusListener, MetadataListener
         RemoteControlClient.MetadataEditor metadataEditor = remoteControlClient.editMetadata(false);
         metadataEditor.putString(MediaMetadataRetriever.METADATA_KEY_ARTIST, metadataHandler.getArtist());
         metadataEditor.putString(MediaMetadataRetriever.METADATA_KEY_TITLE, metadataHandler.getTitle());
-        // this somehow breaks stuff
-//        Bitmap coverArt = metadataHandler.getCoverArt();
-//        if (coverArt == null) {
-//            coverArt = logo;
-//        }
-//        metadataEditor.putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, coverArt);
+        updateCoverArt(metadataEditor, metadataHandler.getCoverArtId());
         metadataEditor.apply();
+    }
+
+    private void updateCoverArt(RemoteControlClient.MetadataEditor metadataEditor, String coverArtId)
+    {
+        if (TextUtils.equals(currentId, coverArtId) && !waitingForCover) {
+            return;
+        }
+
+        waitingForCover = false;
+
+        CoverArt coverArt = null;
+        if (coverArtId != null) {
+            coverArt = coverArtSource.get(coverArtId);
+        }
+        if (coverArt != null && coverArt.lockscreenArt != null) {
+            metadataEditor.putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, coverArt.lockscreenArt);
+        } else {
+            waitingForCover = coverArtId != null;
+            if (currentId != null) {
+                Bitmap logo = BitmapFactory.decodeResource(context.getResources(), R.drawable.logo);
+                metadataEditor.putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, logo);
+            }
+        }
+
+        currentId = coverArtId;
     }
 
     public void unregister()
@@ -91,6 +122,15 @@ public class RemoteControl implements PlaybackStatusListener, MetadataListener
         if (!available) {
             return;
         }
+        coverArtSource.unregisterCoverArtListener(this);
         audioManager.unregisterRemoteControlClient(remoteControlClient);
+    }
+
+    @Override
+    public void artAvailable(String key)
+    {
+        RemoteControlClient.MetadataEditor metadataEditor = remoteControlClient.editMetadata(false);
+        updateCoverArt(metadataEditor, key);
+        metadataEditor.apply();
     }
 }

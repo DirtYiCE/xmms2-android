@@ -46,30 +46,12 @@ static void JNICALL start_service (JNIEnv *env, jobject thiz);
 static void JNICALL quit (JNIEnv *env, jobject thiz);
 static void JNICALL playback_play (JNIEnv *env, jobject thiz);
 static void JNICALL playback_pause (JNIEnv *env, jobject thiz);
-static void JNICALL playback_stop (JNIEnv *env, jobject thiz);
-static void JNICALL playback_toggle (JNIEnv *env, jobject thiz);
-static void JNICALL playback_next (JNIEnv *env, jobject thiz);
-static void JNICALL playback_previous (JNIEnv *env, jobject thiz);
-static jbyteArray JNICALL get_bindata (JNIEnv *env, jobject thiz, jstring key);
-static void JNICALL check_path (JNIEnv *env, jobject thiz, jstring path);
 
 static JNINativeMethod methods[] = {
 	{"start", "()V", start_service},
 	{"quit", "()V", quit},
 	{"play", "()V", playback_play},
 	{"pause", "()V", playback_pause},
-	{"stop", "()V", playback_stop},
-	{"toggle", "()V", playback_toggle},
-	{"next", "()V", playback_next},
-	{"previous", "()V", playback_previous},
-};
-
-static JNINativeMethod cache_methods[] = {
-	{"getBinData", "(Ljava/lang/String;)[B", get_bindata}
-};
-
-static JNINativeMethod observer_methods[] = {
-	{"check", "(Ljava/lang/String;)V", check_path}
 };
 
 JavaVM *global_jvm;
@@ -83,9 +65,6 @@ typedef struct {
 
 	jobject status_handler;
 	jmethodID update_status;
-
-	jobject metadata_handler;
-	jmethodID currently_playing;
 } xmms_main_java_cache_t;
 
 /**
@@ -105,7 +84,6 @@ struct xmms_main_St {
 	xmms_visualization_t *visualization_object;
 
 	xmms_main_java_cache_t *java_cache;
-	xmmsv_t *coll_query_args;
 	time_t starttime;
 };
 
@@ -216,14 +194,6 @@ JNI_OnLoad (JavaVM *vm, void *reserved)
 	(*env)->RegisterNatives (env, clazz, methods,
 	                         sizeof(methods)/sizeof(methods[0]));
 
-	clazz = (*env)->FindClass (env, "org/xmms2/server/MediaObserver");
-	(*env)->RegisterNatives (env, clazz, observer_methods,
-	                         sizeof(observer_methods)/sizeof(observer_methods[0]));
-
-	clazz = (*env)->FindClass (env, "org/xmms2/server/CoverArtSource");
-	(*env)->RegisterNatives (env, clazz, cache_methods,
-	                         sizeof(cache_methods)/sizeof(cache_methods[0]));
-
 	global_jvm = vm;
 
 	return JNI_VERSION_1_6;
@@ -278,114 +248,6 @@ playback_pause (JNIEnv *env, jobject thiz)
 	xmmsv_unref (arg.args);
 }
 
-static void JNICALL
-playback_toggle (JNIEnv *env, jobject thiz)
-{
-	xmms_object_cmd_arg_t arg;
-	int32_t status;
-	xmms_object_cmd_arg_init (&arg);
-	arg.args = xmmsv_new_list ();
-	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
-	                      XMMS_IPC_CMD_PLAYBACK_STATUS, &arg);
-	if (!xmmsv_get_int (arg.retval, &status)) {
-		return;
-	}
-	if (status == XMMS_PLAYBACK_STATUS_PLAY) {
-		playback_pause (env, thiz);
-	} else {
-		playback_play (env, thiz);
-	}
-	xmmsv_unref (arg.args);
-}
-
-static void JNICALL
-playback_stop (JNIEnv *env, jobject thiz)
-{
-	xmms_object_cmd_arg_t arg;
-	xmms_object_cmd_arg_init (&arg);
-	arg.args = xmmsv_new_list ();
-	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
-	                      XMMS_IPC_CMD_STOP, &arg);
-	xmmsv_unref (arg.args);
-}
-
-static void
-playback_tickle ()
-{
-	xmms_object_cmd_arg_t arg;
-	xmms_object_cmd_arg_init (&arg);
-	arg.args = xmmsv_new_list ();
-	xmms_object_cmd_call (XMMS_OBJECT (mainobj->output_object),
-	                      XMMS_IPC_CMD_DECODER_KILL, &arg);
-	xmmsv_unref (arg.args);
-}
-
-static void
-playlist_set_pos_rel (int32_t rel_pos)
-{
-	xmms_object_cmd_arg_t arg;
-	xmmsv_t *args = xmmsv_new_list ();
-	xmmsv_t *rel = xmmsv_new_int (rel_pos);
-
-	xmms_object_cmd_arg_init (&arg);
-	xmmsv_list_append (args, rel);
-	arg.args = args;
-	xmms_object_cmd_call (XMMS_OBJECT (mainobj->playlist_object),
-	                      XMMS_IPC_CMD_SET_POS_REL, &arg);
-	xmmsv_unref (arg.args);
-}
-
-static void JNICALL
-playback_next (JNIEnv *env, jobject thiz)
-{
-	playlist_set_pos_rel (1);
-	playback_tickle ();
-}
-
-static void JNICALL
-playback_previous (JNIEnv *env, jobject thiz)
-{
-	playlist_set_pos_rel (-1);
-	playback_tickle ();
-}
-
-static jbyteArray JNICALL
-get_bindata (JNIEnv *env, jobject thiz, jstring key)
-{
-	jbyteArray ret = NULL;
-	int len = 0;
-	const char *ckey = (*env)->GetStringUTFChars (env, key, 0);
-
-	xmms_object_cmd_arg_t arg;
-	xmms_object_cmd_arg_init (&arg);
-	arg.args = xmmsv_new_list ();
-
-	xmmsv_list_append_string (arg.args, ckey);
-
-	xmms_object_cmd_call (XMMS_OBJECT (mainobj->bindata_object),
-	                      XMMS_IPC_CMD_GET_DATA, &arg);
-
-	if (!xmms_error_iserror (&arg.error)) {
-		const unsigned char *r;
-		if (xmmsv_get_bin (arg.retval, &r, &len)) {
-			ret = (*env)->NewByteArray (env, len);
-			(*env)->SetByteArrayRegion (env, ret, 0, len, r);
-		}
-	}
-
-	xmmsv_unref (arg.args);
-	xmmsv_unref (arg.retval);
-
-	(*env)->ReleaseStringUTFChars (env, key, ckey);
-
-	return ret;
-}
-
-static void JNICALL
-check_path (JNIEnv *env, jobject thiz, jstring path)
-{
-}
-
 /**
  * @internal Destroy the main object
  * @param[in] object The object to destroy
@@ -422,10 +284,8 @@ xmms_main_destroy (xmms_object_t *object)
 
 	(*env)->DeleteGlobalRef (env, server_object);
 	(*env)->DeleteGlobalRef (env, mainobj->java_cache->status_handler);
-	(*env)->DeleteGlobalRef (env, mainobj->java_cache->metadata_handler);
 	(*env)->DeleteGlobalRef (env, mainobj->java_cache->server_class);
 	g_free (mainobj->java_cache);
-	xmmsv_unref (mainobj->coll_query_args);
 }
 
 /**
@@ -503,49 +363,6 @@ status_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
 	(*env)->CallVoidMethod (env, cache->status_handler, cache->update_status, status);
 }
 
-static void
-current_id_handler (xmms_object_t *object, xmmsv_t *data, gpointer userdata)
-{
-	int32_t id[1];
-	jstring s;
-	jstring artist;
-	jstring title;
-	jstring url;
-	jstring picture_front = NULL;
-	JNIEnv *env = get_env ();
-	xmmsv_coll_t *coll;
-	xmms_object_cmd_arg_t arg;
-	xmms_main_t *m = (xmms_main_t *) userdata;
-	xmms_main_java_cache_t *cache = m->java_cache;
-
-	if (!xmmsv_get_int (data, &(id[0]))) {
-		return;
-	}
-
-	xmms_object_cmd_arg_init (&arg);
-	xmmsv_list_get_coll (m->coll_query_args, 0, &coll);
-	xmmsv_coll_set_idlist (coll, id);
-
-	arg.args = m->coll_query_args;
-
-	xmms_object_cmd_call (XMMS_OBJECT (mainobj->colldag_object),
-	                      XMMS_IPC_CMD_QUERY, &arg);
-
-	(*env)->PushLocalFrame (env, 8);
-
-	artist = dict_get_jstring (env, arg.retval, "artist");
-	title = dict_get_jstring (env, arg.retval, "title");
-	url = dict_get_jstring (env, arg.retval, "url");
-	picture_front = dict_get_jstring (env, arg.retval, "picture_front");
-
-	(*env)->CallVoidMethod (env, cache->metadata_handler, cache->currently_playing,
-	                        url, artist, title, picture_front);
-
-	(*env)->PopLocalFrame (env, NULL);
-
-	xmmsv_unref (arg.retval);
-}
-
 static xmms_main_java_cache_t *
 create_java_cache (JNIEnv *env, jobject thiz)
 {
@@ -553,14 +370,13 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	jclass clazz = (*env)->GetObjectClass (env, thiz);
 	jfieldID handler_id = (*env)->GetFieldID (env, clazz, "statusHandler",
 	                                          "Lorg/xmms2/server/StatusHandler;");
-	jfieldID metadata_id = (*env)->GetFieldID (env, clazz, "metadataHandler",
-	                                           "Lorg/xmms2/server/MetadataHandler;");
 	g_return_val_if_fail (clazz, NULL);
 
 	cache = g_new0 (xmms_main_java_cache_t, 1);
 	g_return_val_if_fail (cache, NULL);
 	
 	server_object = (*env)->NewGlobalRef (env, thiz);
+
 	cache->server_class = (*env)->NewGlobalRef (env, clazz);
 	cache->plugin_path_get = (*env)->GetMethodID (env, clazz, "getPluginPath",
 	                                              "()Ljava/lang/String;");
@@ -571,47 +387,7 @@ create_java_cache (JNIEnv *env, jobject thiz)
 	clazz = (*env)->GetObjectClass (env, cache->status_handler);
 	cache->update_status = (*env)->GetMethodID (env, clazz, "updateStatus", "(I)V");
 
-	cache->metadata_handler = (*env)->NewGlobalRef (env, (*env)->GetObjectField (env, thiz, metadata_id));
-	clazz = (*env)->GetObjectClass (env, cache->metadata_handler);
-	cache->currently_playing = (*env)->GetMethodID (env, clazz,
-	                                                "setCurrentlyPlayingInfo",
-	                                                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
-
 	return cache;
-}
-
-static xmmsv_t *
-create_coll_query_args ()
-{
-	xmmsv_t *args;
-	xmmsv_coll_t *coll;
-	xmmsv_t *fetch;
-	xmmsv_t *a;
-
-	args = xmmsv_new_list ();
-
-	coll = xmmsv_coll_new (XMMS_COLLECTION_TYPE_IDLIST);
-	xmmsv_list_append_coll (args, coll);
-
-	fetch = xmmsv_new_dict ();
-	xmmsv_dict_set_string (fetch, "type", "metadata");
-
-	a = xmmsv_new_list ();
-	xmmsv_list_append_string (a, "artist");
-	xmmsv_list_append_string (a, "title");
-	xmmsv_list_append_string (a, "url");
-	xmmsv_list_append_string (a, "picture_front");
-
-	xmmsv_dict_set (fetch, "fields", a);
-
-	a = xmmsv_new_list ();
-	xmmsv_list_append_string (a, "field");
-	xmmsv_list_append_string (a, "value");
-
-	xmmsv_dict_set (fetch, "get", a);
-	xmmsv_list_append (args, fetch);
-
-	return args;
 }
 
 static void JNICALL
@@ -695,15 +471,10 @@ start_service (JNIEnv *env, jobject thiz)
 	}
 
 	mainobj->visualization_object = xmms_visualization_new (mainobj->output_object);
-	mainobj->coll_query_args = create_coll_query_args ();
 
 	xmms_signal_init (XMMS_OBJECT (mainobj));
 
 	xmms_main_register_ipc_commands (XMMS_OBJECT (mainobj));
-
-	xmms_object_connect (XMMS_OBJECT (mainobj->output_object),
-	                     XMMS_IPC_SIGNAL_PLAYBACK_CURRENTID,
-	                     &current_id_handler, mainobj);
 
 	xmms_object_connect (XMMS_OBJECT (mainobj->output_object),
 	                     XMMS_IPC_SIGNAL_PLAYBACK_STATUS,

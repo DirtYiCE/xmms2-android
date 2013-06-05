@@ -1,8 +1,9 @@
-package org.xmms2.server;
+package org.xmms2.service.misc;
 
-import android.content.Context;
-import android.graphics.Bitmap;
 import android.text.TextUtils;
+import org.xmms2.eclipser.client.commands.AbstractListener;
+import org.xmms2.eclipser.client.protocol.types.Dict;
+import org.xmms2.eclipser.client.protocol.types.Value;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -13,32 +14,41 @@ import java.util.Set;
 /**
  * @author Eclipser
  */
-public class MetadataHandler
+class MetadataHandler extends AbstractListener<Value>
 {
-    private final CoverArtSource cache;
-
     private String url;
     private String title;
     private String artist;
     private String pictureFront;
 
-    public MetadataHandler(Context context)
-    {
-        cache = new CoverArtSource(context, 8 * 1024 * 1024);
-    }
-
     private Set<MetadataListener> metadataListeners = new HashSet<MetadataListener>();
 
-    private void setCurrentlyPlayingInfo(String url, String artist, String title, String pictureFront)
+    @Override
+    public void handleResponse(Value value)
     {
+        if (value == null) return;
+
+        Dict dict = value.getDict();
+        String url = dict.getString("url");
+        this.title = null;
+        this.artist = null;
+        this.pictureFront = null;
+
         try {
             this.url = new File(URLDecoder.decode(url, "UTF-8")).getName();
         } catch (UnsupportedEncodingException e) {
             this.url = url;
         }
-        this.title = title;
-        this.artist = artist;
-        this.pictureFront = pictureFront;
+
+        if (dict.containsKey("title")) {
+            this.title = dict.getString("title");
+        }
+        if (dict.containsKey("artist")) {
+            this.artist = dict.getString("artist");
+        }
+        if (dict.containsKey("picture_front")) {
+            this.pictureFront = dict.getString("picture_front");
+        }
 
         for (MetadataListener metadataListener : metadataListeners) {
             metadataListener.metadataChanged(this);
@@ -65,19 +75,6 @@ public class MetadataHandler
             return artist;
         }
         return String.format("%s - %s", artist, title);
-    }
-
-    public Bitmap getCoverArt()
-    {
-        if (pictureFront == null) {
-            return null;
-        }
-        Bitmap bitmap = cache.get(pictureFront);
-        if (bitmap == null) {
-            return null;
-        }
-
-        return bitmap.copy(bitmap.getConfig(), false);
     }
 
     public String getCoverArtId()

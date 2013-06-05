@@ -1,4 +1,4 @@
-package org.xmms2.server;
+package org.xmms2.service.misc;
 
 import android.app.Notification;
 

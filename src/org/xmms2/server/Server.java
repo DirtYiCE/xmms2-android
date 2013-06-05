@@ -7,6 +7,9 @@ import android.content.*;
 import android.media.AudioManager;
 import android.os.*;
 import android.util.Log;
+import android.widget.Toast;
+import org.xmms2.service.misc.MiscClient;
+import org.xmms2.service.misc.NotificationUpdater;
 
 import java.io.*;
 import java.lang.Process;
@@ -17,7 +20,7 @@ import java.util.Queue;
 /**
  * @author Eclipser
  */
-public class Server extends Service implements NotificationUpdater
+public class Server extends Service
 {
     public static final int ONGOING_NOTIFICATION = 1;
     public static final String ACTION_START_CLIENT = "org.xmms2.server.action.START_CLIENT";
@@ -32,30 +35,28 @@ public class Server extends Service implements NotificationUpdater
             updateExternalStorageState();
         }
     };
-    private MediaObserver mediaObserver;
-    private AudioManager audioManager;
 
     private static final Queue<Messenger> queue = new LinkedList<Messenger>();
 
     // these handlers are used from native side
     private StatusHandler statusHandler;
-    @SuppressWarnings("FieldCanBeLocal")
-    private MetadataHandler metadataHandler;
+    private MiscClient metadataClient;
 
-    private NotificationHandler notificationHandler;
-    private RemoteControl remoteControl = null;
-
-    @Override
-    public void updateNotification(Notification notification)
+    private final NotificationUpdater notificationUpdater = new NotificationUpdater()
     {
-        startForeground(ONGOING_NOTIFICATION, notification);
-    }
+        @Override
+        public void updateNotification(Notification notification)
+        {
+            startForeground(ONGOING_NOTIFICATION, notification);
+        }
 
-    @Override
-    public void removeNotification()
-    {
-        stopForeground(true);
-    }
+        @Override
+        public void removeNotification()
+        {
+            stopForeground(true);
+        }
+    };
+    private Handler handler;
 
     public void registerHeadsetListener(HeadsetListener listener)
     {
@@ -110,10 +111,12 @@ public class Server extends Service implements NotificationUpdater
         } catch (RemoteException ignored) {}
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     private void serverReady()
     {
         synchronized (queue) {
             running = true;
+            startServiceClients();
             MessageHandler.running = true;
             Messenger messenger = queue.poll();
             while (messenger != null) {
@@ -123,45 +126,50 @@ public class Server extends Service implements NotificationUpdater
         }
     }
 
+    private void startServiceClients()
+    {
+        handler.post(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                try {
+                    metadataClient = new MiscClient("tcp://localhost:9667", Server.this, notificationUpdater);
+                } catch (IOException e) {
+                    Toast.makeText(Server.this, R.string.service_client_error, Toast.LENGTH_SHORT);
+                }
+            }
+        });
+    }
+
+    private void stopServiceClients()
+    {
+        if (metadataClient != null) {
+            metadataClient.disconnect();
+        }
+    }
+
     static native void play();
     static native void pause();
-    static native void stop();
-    static native void toggle();
-    static native void next();
-    static native void previous();
 
     private native void start();
     private native void quit();
-
-    private ComponentName mediaButtonEventHandler;
 
     @Override
     public void onCreate()
     {
         super.onCreate();
 
+        handler = new Handler();
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_MEDIA_MOUNTED);
         filter.addAction(Intent.ACTION_MEDIA_UNMOUNTED);
         filter.addAction(Intent.ACTION_MEDIA_REMOVED);
         registerReceiver(storageStateReceiver, filter);
 
-        mediaObserver = new MediaObserver(Environment.getExternalStorageDirectory().getAbsolutePath());
-        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-
-        mediaButtonEventHandler = new ComponentName(this, MediaButtonEventHandler.class);
-        audioManager.registerMediaButtonEventReceiver(mediaButtonEventHandler);
+        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 
         statusHandler = new StatusHandler();
-        metadataHandler = new MetadataHandler(this);
-
-        notificationHandler = new NotificationHandler(this, this);
-        statusHandler.registerPlaybackStatusListener(notificationHandler);
-        metadataHandler.registerMetadataListener(notificationHandler);
-
-        remoteControl = new RemoteControl(this, mediaButtonEventHandler);
-        statusHandler.registerPlaybackStatusListener(remoteControl);
-        metadataHandler.registerMetadataListener(remoteControl);
 
         headsetReceiver = new HeadsetReceiver(audioManager.isSpeakerphoneOn() ? HeadsetState.UNPLUGGED : HeadsetState.PLUGGED);
         statusHandler.registerPlaybackStatusListener(headsetReceiver);
@@ -189,7 +197,7 @@ public class Server extends Service implements NotificationUpdater
                     MessageHandler.running = false;
                     running = false;
                     stopForeground(true);
-                    mediaObserver.stopWatching();
+                    stopServiceClients();
                     stopSelf();
                 }
             });
@@ -248,10 +256,7 @@ public class Server extends Service implements NotificationUpdater
     public void onDestroy()
     {
         stopForeground(true);
-        mediaObserver.stopWatching();
-        audioManager.unregisterMediaButtonEventReceiver(mediaButtonEventHandler);
-        notificationHandler.unregisterReceiver();
-        remoteControl.unregister();
+        stopServiceClients();
         unregisterReceiver(storageStateReceiver);
         unregisterReceiver(headsetReceiver);
         if (running) {
@@ -278,6 +283,7 @@ public class Server extends Service implements NotificationUpdater
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     private String getBrowseRoot()
     {
         return Environment.getExternalStorageDirectory().getAbsolutePath();

@@ -1,9 +1,9 @@
-package org.xmms2.server;
+package org.xmms2.service.misc;
 
 /**
  * @author Eclipser
  */
-public interface MetadataListener
+interface MetadataListener
 {
     void metadataChanged(MetadataHandler metadataHandler);
 }

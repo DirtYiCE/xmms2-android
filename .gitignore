@@ -3,6 +3,6 @@ gen
 .idea/workspace.xml
 *.swp
 obj/
-libs/
+libs/arme*
 *.so
 proguard_logs/
