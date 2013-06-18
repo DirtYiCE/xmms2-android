@@ -3,11 +3,15 @@ package org.xmms2.server;
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.Service;
-import android.content.*;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.os.*;
 import android.util.Log;
 import android.widget.Toast;
+import org.xmms2.service.medialib.updater.UpdaterService;
 import org.xmms2.service.misc.MiscClient;
 import org.xmms2.service.misc.NotificationUpdater;
 
@@ -40,6 +44,7 @@ public class Server extends Service
 
     // these handlers are used from native side
     private StatusHandler statusHandler;
+
     private MiscClient metadataClient;
 
     private final NotificationUpdater notificationUpdater = new NotificationUpdater()
@@ -135,6 +140,7 @@ public class Server extends Service
             {
                 try {
                     metadataClient = new MiscClient("tcp://localhost:9667", Server.this, notificationUpdater);
+//                    startService(new Intent(Server.this, UpdaterService.class));
                 } catch (IOException e) {
                     Toast.makeText(Server.this, R.string.service_client_error, Toast.LENGTH_SHORT);
                 }

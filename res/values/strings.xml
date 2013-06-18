@@ -11,4 +11,7 @@
     <string name="next">Next</string>
     <string name="pause">Pause</string>
     <string name="service_client_error">Could not start service client</string>
+    <string name="indexing_process_text">Indexing music files</string>
+    <string name="indexing_title">XMMS2 Media</string>
+    <string name="updater_label">Media Library Updater Service</string>
 </resources>

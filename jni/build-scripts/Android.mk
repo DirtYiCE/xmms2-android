@@ -128,3 +128,4 @@ include $(BUILD_SCRIPTS_DIR)/xmms2/opus.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/sndfile.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/musepack.mk
 include $(BUILD_SCRIPTS_DIR)/xmms2/tool-runner.mk
+include $(BUILD_SCRIPTS_DIR)/file_observer.mk

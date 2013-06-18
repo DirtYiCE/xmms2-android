@@ -3,5 +3,6 @@
     <option name="myName" value="Project Default" />
     <option name="myLocal" value="false" />
     <inspection_tool class="AndroidLintContentDescription" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+    <inspection_tool class="JavadocReference" enabled="false" level="ERROR" enabled_by_default="false" />
   </profile>
 </component>

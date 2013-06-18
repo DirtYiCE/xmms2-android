@@ -8,6 +8,7 @@ import org.xmms2.eclipser.client.ClientStatus;
 import org.xmms2.eclipser.client.ClientStatusListener;
 import org.xmms2.eclipser.client.commands.AbstractListener;
 import org.xmms2.eclipser.client.commands.Collection;
+import org.xmms2.eclipser.client.commands.MediainfoReader;
 import org.xmms2.eclipser.client.commands.Playback;
 import org.xmms2.eclipser.client.protocol.fetchspecification.Aggregate;
 import org.xmms2.eclipser.client.protocol.fetchspecification.FetchSpecification;
@@ -39,6 +40,7 @@ public class MiscClient implements ClientStatusListener
     private final ComponentName mediaButtonEventHandler;
     private final AudioManager audioManager;
     private final RemoteControl remoteControl;
+    private final MediainfoReaderStatusSignalListener mediainfoReaderStatusSignalListener;
 
     public MiscClient(String uri, Context context,
                       NotificationUpdater notificationUpdater) throws IOException
@@ -73,6 +75,9 @@ public class MiscClient implements ClientStatusListener
 
         client.execute(Playback.currentId(), currentIdListener);
         client.execute(Playback.currentIdBroadcast(), currentIdListener);
+
+        mediainfoReaderStatusSignalListener = new MediainfoReaderStatusSignalListener(context);
+        client.execute(MediainfoReader.statusBroadcast(), mediainfoReaderStatusSignalListener);
     }
 
     @Override
@@ -90,6 +95,7 @@ public class MiscClient implements ClientStatusListener
         notificationHandler.unregister();
         remoteControl.unregister();
         control.disconnect();
+        mediainfoReaderStatusSignalListener.removeNotification();
         try {
             client.disconnect();
         } catch (IOException ignored) {}
