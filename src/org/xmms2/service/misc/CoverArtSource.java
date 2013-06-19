@@ -2,6 +2,7 @@ package org.xmms2.service.misc;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.os.Build;
 import android.support.v4.util.LruCache;
 import org.xmms2.eclipser.client.Client;
 import org.xmms2.eclipser.client.commands.AbstractListener;
@@ -19,10 +20,20 @@ class CoverArtSource extends LruCache<String, CoverArt>
     private final Client client;
     private final Set<CoverArtListener> coverArtListeners;
     private final Map<String, DataListener> listenerMap;
+    private final boolean available;
 
     CoverArtSource(Client client, Context context, int maxSize)
     {
         super(maxSize);
+        available = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB;
+        if (!available) {
+            notificationWidth = notificationHeight = 0;
+            coverArtListeners = null;
+            listenerMap = null;
+            this.client = null;
+            return;
+        }
+
         this.client = client;
 
         Resources resources = context.getResources();
@@ -41,7 +52,7 @@ class CoverArtSource extends LruCache<String, CoverArt>
     @Override
     protected CoverArt create(String key)
     {
-        if (!listenerMap.containsKey(key)) {
+        if (available && !listenerMap.containsKey(key)) {
             DataListener listener = new DataListener(key);
             listenerMap.put(key, listener);
             client.execute(Bindata.retrieve(key), listener);
@@ -77,11 +88,13 @@ class CoverArtSource extends LruCache<String, CoverArt>
 
     public void registerCoverArtListener(CoverArtListener coverArtListener)
     {
+        if (!available) return;
         coverArtListeners.add(coverArtListener);
     }
 
     public void unregisterCoverArtListener(CoverArtListener coverArtListener)
     {
+        if (!available) return;
         coverArtListeners.remove(coverArtListener);
     }
 }
