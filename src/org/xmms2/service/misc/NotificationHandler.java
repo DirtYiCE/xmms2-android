@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.widget.RemoteViews;
@@ -110,8 +111,9 @@ class NotificationHandler implements PlaybackStatusListener, MetadataListener, C
             coverArt = coverArtSource.get(id);
         }
         if (coverArt != null) {
-            builder.setLargeIcon(coverArt.notificationArt);
-            notificationView.setImageViewBitmap(R.id.icon, coverArt.notificationArt);
+            Bitmap copy = coverArt.notificationArt.copy(coverArt.notificationArt.getConfig(), false);
+            builder.setLargeIcon(copy);
+            notificationView.setImageViewBitmap(R.id.icon, copy);
         } else {
             waitingForCover = id != null;
             builder.setLargeIcon(null);

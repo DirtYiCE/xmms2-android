@@ -105,7 +105,8 @@ class RemoteControl implements PlaybackStatusListener, MetadataListener, CoverAr
             coverArt = coverArtSource.get(coverArtId);
         }
         if (coverArt != null && coverArt.lockscreenArt != null) {
-            metadataEditor.putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, coverArt.lockscreenArt);
+            Bitmap copy = coverArt.lockscreenArt.copy(coverArt.lockscreenArt.getConfig(), false);
+            metadataEditor.putBitmap(RemoteControlClient.MetadataEditor.BITMAP_KEY_ARTWORK, copy);
         } else {
             waitingForCover = coverArtId != null;
             if (currentId != null) {
