@@ -11,6 +11,7 @@ LOCAL_SRC_FILES := \
     $(XMMS_SOURCE)/xmms/mediainfo.c \
     $(XMMS_SOURCE)/xmms/utils.c \
     $(XMMS_SOURCE)/xmms/ringbuf.c \
+    $(XMMS_SOURCE)/xmms/ringbuf_xform.c \
     $(XMMS_SOURCE)/xmms/compat/localtime_unix.c \
     $(XMMS_SOURCE)/xmms/xform_plugin.c \
     $(XMMS_SOURCE)/xmms/playlist.c \
