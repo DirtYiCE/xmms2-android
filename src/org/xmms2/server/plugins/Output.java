@@ -1,9 +1,12 @@
 package org.xmms2.server.plugins;
 
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.audiofx.AudioEffect;
+import android.os.Build;
 import org.xmms2.server.AudioFocusHandler;
 import org.xmms2.server.PlaybackStatus;
 import org.xmms2.server.PlaybackStatusListener;
@@ -33,8 +36,11 @@ public class Output implements PlaybackStatusListener, Runnable
     private final AtomicBoolean formatChanged = new AtomicBoolean(false);
     private final AtomicBoolean paused = new AtomicBoolean(false);
 
+    private Context context;
+
     public Output(Server server)
     {
+        this.context = server.getApplicationContext();
         this.audioManager = (AudioManager) server.getSystemService(Context.AUDIO_SERVICE);
         audioFocusChangeListener = new AudioFocusHandler(this);
         server.registerPlaybackListener(audioFocusChangeListener);
@@ -219,6 +225,13 @@ public class Output implements PlaybackStatusListener, Runnable
 
             if (audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
                 audioTrack.getPlayState() != AudioTrack.PLAYSTATE_PLAYING) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+                    Intent intent = new Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION);
+                    intent.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioTrack.getAudioSessionId());
+                    intent.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, "org.xmms2.server");
+                    context.sendBroadcast(intent);
+                }
+
                 audioTrack.play();
             }
 
@@ -228,6 +241,13 @@ public class Output implements PlaybackStatusListener, Runnable
 
             if (audioTrack != null && audioTrack.getState() == AudioTrack.STATE_INITIALIZED &&
                 audioTrack.getPlayState() != AudioTrack.PLAYSTATE_STOPPED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+                    Intent intent = new Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION);
+                    intent.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioTrack.getAudioSessionId());
+                    intent.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, "org.xmms2.server");
+                    context.sendBroadcast(intent);
+                }
+
                 audioTrack.stop();
             }
 
